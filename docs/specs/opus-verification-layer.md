@@ -7,9 +7,48 @@
 
 Developers (and AI agents) repeat mistakes. They re-introduce reverted code, thrash on the same file, or recreate patterns that were already tried and failed. Git has all the evidence but nobody checks it before committing.
 
-## Real Example
+## Real Examples (from bibleai production)
+
+### Example 1: RAG Source Truncation — Tried and Reverted
 
 Commit `eeea6a4` added RAG source truncation to reduce TTFT. Commit `e0137be` reverted it because of prod risk. Without historical awareness, nothing stops an agent from trying the same approach again next week.
+
+**What Opus would say:** "BLOCK — RAG source truncation was tried in `eeea6a4` and reverted in `e0137be` (prod migration risk). This is the third time source count reduction has been attempted (15 → 5 → 4). Consider a different approach."
+
+### Example 2: max_tokens Thrashing — 5 Changes in One Day
+
+The prayer block `max_tokens` value was tuned 5 times in a single day (March 27):
+
+| Commit | Value | Problem |
+|--------|-------|---------|
+| `ea2761a` | 150 | Sonnet wrote paragraphs |
+| `0c24804` | 150 | Added banned words instead |
+| `0090014` | 200 | 150 caused truncation on Day 2 |
+| `f19469a` | 200 | 120 truncated mid-section |
+
+Story block `max_tokens` bounced 5 times over 2 weeks:
+- Feb 2: increased (too small)
+- Feb 4: increased to 8192 (truncation)
+- Feb 5: increased "more aggressively"
+- Feb 12: capped at 2000
+- Feb 17: switched to DB recipe instead of blanket cap
+
+**What Opus would say:** "WARN — You're modifying `max_tokens` for prayer blocks. This value has been changed 5 times already (`ea2761a`, `0c24804`, `0090014`, `f19469a`). The pattern suggests the problem isn't the token count — it's the prompt structure. Previous attempts: 120 (truncated), 150 (paragraphs), 200 (current). Consider addressing prompt engineering instead of tuning this value again."
+
+### Example 3: Repeated Architectural Oscillation
+
+Source count reduction was tried 3 separate times: 15 → 5 → 4 sources. Each time it was a speed vs quality tradeoff that ultimately got reverted or adjusted back. The "cap vs DB control" pattern also oscillated — Feb 12 added a hardcoded cap at 2000, Feb 17 switched to DB recipe control, and the pattern continued.
+
+**What Opus would say:** "WARN — You're adding a hardcoded cap for block generation. This pattern has oscillated before: Feb 12 added a 2000 cap, Feb 17 switched to DB recipe control. The DB recipe approach won last time. Are you sure you want a hardcoded value?"
+
+### Why These Matter
+
+Each of these examples wasted hours of developer time:
+- The `max_tokens` churn alone was 5 commits in one day — each requiring testing, deployment, and evaluation
+- The source count reduction was tried 3 times across weeks before the team settled on the right approach
+- None of these decisions were documented anywhere that an AI agent could find
+
+With enrichment data + Opus verification, every one of these would be flagged on the first re-attempt. The enrichment captures the *intent* and *reasoning* behind each change, so Opus can explain not just "this was tried before" but "here's why it was reverted and what worked instead."
 
 ## Solution
 
