@@ -1,6 +1,6 @@
 {
   "name": "@m2015agg/git-skill",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Git history intelligence for LLMs — institutional memory over codebase evolution",
   "type": "module",
   "main": "./dist/index.js",
@@ -15,7 +15,7 @@
     "test:coverage": "vitest run --coverage",
     "link": "npm run build && npm link",
     "prepublishOnly": "npm run build",
-    "postinstall": "node -e \"process.stdout.write('\\n  git-skill installed! Run: git-skill install\\n\\n')\""
+    "postinstall": "node -e \"process.stdout.write('\\n  git-skill installed!\\n  If command not found, run: hash -r\\n  Then: git-skill install\\n\\n')\""
   },
   "dependencies": {
     "better-sqlite3": "^12.8.0",
