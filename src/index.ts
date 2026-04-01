@@ -15,6 +15,10 @@ import { diffSummaryCommand } from "./commands/diff-summary.js";
 import { trendsCommand } from "./commands/trends.js";
 import { regressionCommand } from "./commands/regression.js";
 import { metricCommand } from "./commands/metric.js";
+import { embedCommand } from "./commands/embed.js";
+import { enrichCommand } from "./commands/enrich.js";
+import { whyCommand } from "./commands/why.js";
+import { releaseNotesCommand } from "./commands/release-notes.js";
 
 const program = new Command();
 program
@@ -36,6 +40,10 @@ program.addCommand(diffSummaryCommand());
 program.addCommand(trendsCommand());
 program.addCommand(regressionCommand());
 program.addCommand(metricCommand());
+program.addCommand(embedCommand());
+program.addCommand(enrichCommand());
+program.addCommand(whyCommand());
+program.addCommand(releaseNotesCommand());
 
 program
   .command("snapshot")
