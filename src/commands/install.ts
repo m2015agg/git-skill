@@ -77,8 +77,9 @@ export function installCommand(): Command {
       write('    enrichment.url = "https://api.openai.com/v1/chat/completions"\n');
       write('    enrichment.model = "gpt-4o"\n');
       write("\n");
-      write("  Set your API key:\n");
-      write('    export GIT_SKILL_LLM_KEY="sk-ant-..."   # add to ~/.bashrc or ~/.zshrc\n');
+      write("  Set your API key in ~/.env (or project .env):\n");
+      write('    GIT_SKILL_LLM_KEY=sk-ant-...   # Anthropic\n');
+      write('    GIT_SKILL_LLM_KEY=sk-...       # OpenAI\n');
       write("\n");
       write("  Then run: git-skill enrich\n");
 

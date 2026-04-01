@@ -76,13 +76,16 @@ Edit `~/.config/git-skill/config.json`:
 }
 ```
 
-Set your API key:
+Set your API key in `~/.env` or your project's `.env`:
 
 ```bash
-export GIT_SKILL_LLM_KEY="sk-ant-..."   # Anthropic
+# ~/.env (loaded automatically by git-skill)
+GIT_SKILL_LLM_KEY=sk-ant-...   # Anthropic
 # or
-export GIT_SKILL_LLM_KEY="sk-..."       # OpenAI
+GIT_SKILL_LLM_KEY=sk-...       # OpenAI
 ```
+
+git-skill loads `.env` from the current directory and `~/` automatically. No need to export — just add the line to the file. Make sure `.env` is in your `.gitignore`.
 
 Then run:
 
