@@ -4,6 +4,9 @@ import { existsSync, readFileSync, writeFileSync, appendFileSync, mkdirSync } fr
 import { installHook } from "../util/hooks.js";
 import { isGitRepo } from "../util/git.js";
 import { execSync } from "child_process";
+import { upsertSection } from "../util/claude-md.js";
+import { getSkillDoc } from "./docs.js";
+import { WALKTHROUGH } from "../templates/walkthrough.js";
 
 function write(msg: string): void { process.stdout.write(msg); }
 
@@ -47,9 +50,21 @@ export function initCommand(): Command {
       // 3. Create .git-history dir
       mkdirSync(join(cwd, ".git-history"), { recursive: true });
 
-      // 4. Run snapshot
+      // 4. Write CLAUDE.md
+      write("3. Writing CLAUDE.md...\n");
+      const claudeMdResult = upsertSection(join(cwd, "CLAUDE.md"), getSkillDoc());
+      write(`   CLAUDE.md: ${claudeMdResult}\n`);
+
+      // 5. Write walkthrough
+      write("4. Writing walkthrough...\n");
+      const walkthroughDir = join(cwd, ".claude", "commands");
+      mkdirSync(walkthroughDir, { recursive: true });
+      writeFileSync(join(walkthroughDir, "git-history.md"), WALKTHROUGH);
+      write("   Walkthrough written to .claude/commands/git-history.md\n");
+
+      // 6. Run snapshot
       if (!opts.skipSnapshot) {
-        write("3. Running initial snapshot...\n");
+        write("5. Running initial snapshot...\n");
         try {
           const entryPoint = process.argv[1];
           execSync(`node ${entryPoint} snapshot`, { cwd, stdio: "inherit" });
@@ -57,14 +72,23 @@ export function initCommand(): Command {
           write("   Warning: Snapshot failed. Run `git-skill snapshot` manually.\n");
         }
       } else {
-        write("3. Skipping snapshot.\n");
+        write("5. Skipping snapshot.\n");
       }
 
-      // 5. Cron (deferred)
+      // 7. Run approve
+      write("6. Pre-approving read-only commands...\n");
+      try {
+        const entryPoint = process.argv[1];
+        execSync(`node ${entryPoint} approve`, { cwd, stdio: "inherit" });
+      } catch {
+        write("   Warning: Approve failed. Run `git-skill approve` manually.\n");
+      }
+
+      // 8. Cron (deferred)
       if (!opts.skipCron) {
-        write("4. Cron setup deferred.\n");
+        write("7. Cron setup deferred.\n");
       } else {
-        write("4. Skipping cron.\n");
+        write("7. Skipping cron.\n");
       }
 
       write("\ngit-skill initialized!\n");
