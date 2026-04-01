@@ -1,5 +1,6 @@
 import { Command } from "commander";
 import { join } from "path";
+import { execSync } from "child_process";
 import { openDb, hasDb } from "../util/db.js";
 
 interface CommitRow {
@@ -40,18 +41,28 @@ export function whyCommand(): Command {
         process.exit(1);
       }
 
+      // Resolve refs like HEAD, HEAD~1, branch names to actual hashes
+      let resolvedHash = hash;
+      if (!/^[a-f0-9]+$/.test(hash)) {
+        try {
+          resolvedHash = execSync(`git rev-parse ${hash}`, { cwd: process.cwd(), encoding: "utf-8" }).trim();
+        } catch {
+          // Leave as-is, will fail lookup below
+        }
+      }
+
       const db = openDb(historyDir);
       try {
         // Support short hash lookup via LIKE
         let commit: CommitRow | undefined;
-        if (hash.length === 40) {
+        if (resolvedHash.length === 40) {
           commit = db
             .prepare("SELECT * FROM commits WHERE hash = ?")
-            .get(hash) as CommitRow | undefined;
+            .get(resolvedHash) as CommitRow | undefined;
         } else {
           commit = db
             .prepare("SELECT * FROM commits WHERE hash LIKE ?")
-            .get(`${hash}%`) as CommitRow | undefined;
+            .get(`${resolvedHash}%`) as CommitRow | undefined;
         }
 
         if (!commit) {
