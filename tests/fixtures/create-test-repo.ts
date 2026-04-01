@@ -282,5 +282,19 @@ export function createTestRepo(): string {
   // Tag v1.1
   gitAt(dir, "tag v1.1 -m 'Release v1.1'", dateAt(41));
 
+  // ── Phase 5: Coupling-generating commits (days 42-46) ─────────────────────
+  // Touch src/core/app.ts + src/core/router.ts together multiple times
+  writeAndStage(dir, "src/core/app.ts", "export class App { private started = false; version = '1.1'; start() { this.started = true; } stop() { this.started = false; } }\n");
+  writeAndStage(dir, "src/core/router.ts", "export class Router { routes: {path: string; handler: () => void}[] = []; base = ''; add(path: string, handler: () => void) { this.routes.push({path: this.base + path, handler}); } }\n");
+  gitAt(dir, "commit -m 'feat: add version and base path support'", dateAt(42));
+
+  writeAndStage(dir, "src/core/app.ts", "export class App { private started = false; version = '1.2'; start() { this.started = true; } stop() { this.started = false; } reset() { this.started = false; } }\n");
+  writeAndStage(dir, "src/core/router.ts", "export class Router { routes: {path: string; handler: () => void; method: string}[] = []; base = ''; add(path: string, handler: () => void, method = 'GET') { this.routes.push({path: this.base + path, handler, method}); } }\n");
+  gitAt(dir, "commit -m 'feat: add reset and HTTP method support'", dateAt(43));
+
+  writeAndStage(dir, "src/core/app.ts", "export class App { private started = false; version = '1.3'; start() { this.started = true; } stop() { this.started = false; } reset() { this.started = false; } isStarted() { return this.started; } }\n");
+  writeAndStage(dir, "src/core/router.ts", "export class Router { routes: {path: string; handler: () => void; method: string}[] = []; base = ''; add(path: string, handler: () => void, method = 'GET') { this.routes.push({path: this.base + path, handler, method}); } clear() { this.routes = []; } }\n");
+  gitAt(dir, "commit -m 'feat: add isStarted and clear methods'", dateAt(44));
+
   return dir;
 }
