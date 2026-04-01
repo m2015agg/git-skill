@@ -3,7 +3,53 @@
 **Project:** `@m2015agg/git-skill` — Git history intelligence for LLMs
 **Spec:** `docs/specs/2026-03-31-git-skill-design.md`
 **Started:** 2026-03-31
-**Completed:** 2026-03-31
+**Completed:** 2026-04-01
+**Published:** `@m2015agg/git-skill@0.2.3` on npm
+
+---
+
+# Implementation Report
+
+**Review Date:** 2026-04-01
+**Status:** Code Review Complete
+
+## Quality Assessment
+- Tests: 105 passing across 23 test files
+- Build: Clean TypeScript compilation (strict mode)
+- Security: All `execSync` → `execFileSync`, parameterized SQL, shared env utils
+- Patterns: Follows supabase-skill/context7-skill ecosystem patterns
+
+## Issues Found and Fixed
+
+### Critical
+- **C1: Shell injection** — All `execSync` calls with user input replaced with `execFileSync` → Fixed in `3d816e2`
+- **C2: SQL injection** — LIMIT clauses with string interpolation replaced with parameterized queries → Fixed in `3d816e2`
+
+### Major
+- **M1: Version mismatch** — `index.ts` hardcoded `0.1.0`, now reads from `package.json` → Fixed in `3d816e2`
+- **M2: Code duplication** — `loadDotEnv`/`resolveEnvVar` duplicated in 2 files, extracted to `src/util/env.ts` → Fixed in `3d816e2`
+- **M3: Capture FTS gap** — Post-commit hook didn't update FTS index, commits invisible to search until snapshot → Fixed in `85a6cfd`
+
+### Major (Deferred — spec gaps for future versions)
+- **M4: `dependency_churn` metric** — Referenced but never computed
+- **M5: Missing spec features** — `resurrection` and `merge_conflict` decision types, custom metrics (`metrics.json`), `.git-history/index.md`, `--depth` flag, post-commit alerts, enrichment-dependent metrics
+- **M6: No tests for `context-update`** — Writes to user home directory, should be tested
+- **M7: No tests for hook upgrade path** — Regex replacement could fail on edge cases
+
+### Minor (Not Fixed)
+- m1: Dead conditional in enrich.ts (identical Anthropic/non-Anthropic body)
+- m2: `search-hybrid.ts` has no vector search implementation (embeddings generated but never queried)
+- m3: Duplicate interface definitions across commands (CommitRow, FileRow)
+- m4: `regression` and `metric record` don't check for db existence
+- m5: `capture --hash` may record wrong commit (HEAD instead of specified hash)
+
+## Post-Implementation Additions (beyond original spec)
+- **GeorgeWorks (`context-update`)** — Writes codebase health to Claude's memory system
+- **Post-commit memory refresh** — Hook runs `context-update` on every commit
+- **Anthropic API support** — Native `x-api-key` header + `anthropic-version`
+- **`.env` file loading** — Auto-loads API keys from `~/.env` and project `.env`
+- **Enriched LLM prompt** — Diff, file list, session context, 5000 max tokens
+- **`maxBuffer: 50MB`** — Supports repos with 2000+ commits
 
 ---
 
