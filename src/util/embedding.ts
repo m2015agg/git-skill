@@ -1,7 +1,5 @@
-import { existsSync, readFileSync } from "fs";
-import { join } from "path";
-import { homedir } from "os";
 import { readConfig } from "./config.js";
+import { loadDotEnv, resolveEnvVar } from "./env.js";
 
 export interface EmbeddingResult {
   vector: number[];
@@ -39,29 +37,3 @@ export function cosineSimilarity(a: number[], b: number[]): number {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB) || 1);
 }
 
-function loadDotEnv(): void {
-  for (const dir of [process.cwd(), homedir()]) {
-    const envPath = join(dir, ".env");
-    if (existsSync(envPath)) {
-      const lines = readFileSync(envPath, "utf-8").split("\n");
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith("#")) continue;
-        const eqIdx = trimmed.indexOf("=");
-        if (eqIdx === -1) continue;
-        const key = trimmed.slice(0, eqIdx).trim();
-        let val = trimmed.slice(eqIdx + 1).trim();
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-          val = val.slice(1, -1);
-        }
-        if (!process.env[key]) process.env[key] = val;
-      }
-    }
-  }
-}
-
-function resolveEnvVar(val: string): string | undefined {
-  if (!val) return undefined;
-  const match = val.match(/^\$\{(.+)\}$/);
-  return match ? process.env[match[1]] : val;
-}

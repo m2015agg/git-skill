@@ -34,9 +34,9 @@ export function embedCommand(): Command {
             LEFT JOIN embeddings e ON c.hash = e.commit_hash
             WHERE e.commit_hash IS NULL ORDER BY c.timestamp DESC`;
         }
-        if (limit > 0) query += ` LIMIT ${limit}`;
-
-        const commits = db.prepare(query).all() as Array<{ hash: string; message: string }>;
+        const commits = (limit > 0
+          ? db.prepare(query + " LIMIT ?").all(limit)
+          : db.prepare(query).all()) as Array<{ hash: string; message: string }>;
 
         if (commits.length === 0) {
           process.stdout.write("No commits to embed.\n");

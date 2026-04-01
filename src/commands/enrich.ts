@@ -1,10 +1,9 @@
 import { Command } from "commander";
 import { join } from "path";
-import { execSync } from "child_process";
-import { existsSync, readFileSync } from "fs";
-import { homedir } from "os";
+import { execFileSync } from "child_process";
 import { openDb, hasDb } from "../util/db.js";
 import { readConfig } from "../util/config.js";
+import { loadDotEnv, resolveEnvVar } from "../util/env.js";
 
 interface CommitRow {
   hash: string;
@@ -25,7 +24,7 @@ interface FileRow {
 
 function getDiff(cwd: string, hash: string, maxChars = 3000): string {
   try {
-    const raw = execSync(`git show --patch --no-color ${hash}`, {
+    const raw = execFileSync("git", ["show", "--patch", "--no-color", hash], {
       cwd,
       encoding: "utf-8",
       timeout: 10000,
@@ -136,34 +135,6 @@ ${fileList}
 ${diff}`;
 }
 
-function loadDotEnv(): void {
-  // Load .env from cwd, then home dir
-  for (const dir of [process.cwd(), homedir()]) {
-    const envPath = join(dir, ".env");
-    if (existsSync(envPath)) {
-      const lines = readFileSync(envPath, "utf-8").split("\n");
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith("#")) continue;
-        const eqIdx = trimmed.indexOf("=");
-        if (eqIdx === -1) continue;
-        const key = trimmed.slice(0, eqIdx).trim();
-        let val = trimmed.slice(eqIdx + 1).trim();
-        // Strip quotes
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-          val = val.slice(1, -1);
-        }
-        if (!process.env[key]) process.env[key] = val;
-      }
-    }
-  }
-}
-
-function resolveEnvVar(val: string): string | undefined {
-  if (!val) return undefined;
-  const match = val.match(/^\$\{(.+)\}$/);
-  return match ? process.env[match[1]] : val;
-}
 
 export function enrichCommand(): Command {
   return new Command("enrich")
@@ -188,14 +159,15 @@ export function enrichCommand(): Command {
           WHERE e.commit_hash IS NULL
           ORDER BY c.timestamp DESC
         `;
-        if (opts.limit) query += ` LIMIT ${parseInt(opts.limit, 10)}`;
-
-        let commits = db.prepare(query).all() as CommitRow[];
+        const limitVal = opts.limit ? parseInt(opts.limit, 10) : 0;
+        let commits = (limitVal > 0
+          ? db.prepare(query + " LIMIT ?").all(limitVal)
+          : db.prepare(query).all()) as CommitRow[];
 
         // Filter by range if provided
         if (range) {
           try {
-            const rangeHashes = execSync(`git rev-list ${range}`, {
+            const rangeHashes = execFileSync("git", ["rev-list", range], {
               cwd,
               encoding: "utf-8",
               timeout: 10000,

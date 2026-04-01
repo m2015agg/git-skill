@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const pkg = require("../package.json");
 import { captureCommand } from "./commands/capture.js";
 import { snapshotCommand } from "./commands/snapshot.js";
 import { initCommand } from "./commands/init.js";
@@ -31,7 +34,7 @@ const program = new Command();
 program
   .name("git-skill")
   .description("Git history intelligence for LLMs")
-  .version("0.1.0");
+  .version(pkg.version);
 
 program.addCommand(captureCommand());
 program.addCommand(initCommand());

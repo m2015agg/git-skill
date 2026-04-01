@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { openDb } from "../util/db.js";
 import { join } from "path";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 
 interface DiffSummaryResult {
   range: string;
@@ -32,7 +32,7 @@ export function diffSummaryCommand(): Command {
         // Get hashes in range
         let revListOutput: string;
         try {
-          revListOutput = execSync(`git rev-list ${range}`, {
+          revListOutput = execFileSync("git", ["rev-list", range], {
             cwd: process.cwd(),
             encoding: "utf-8",
           });

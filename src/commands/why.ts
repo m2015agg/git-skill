@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { join } from "path";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { openDb, hasDb } from "../util/db.js";
 
 interface CommitRow {
@@ -45,7 +45,7 @@ export function whyCommand(): Command {
       let resolvedHash = hash;
       if (!/^[a-f0-9]+$/.test(hash)) {
         try {
-          resolvedHash = execSync(`git rev-parse ${hash}`, { cwd: process.cwd(), encoding: "utf-8" }).trim();
+          resolvedHash = execFileSync("git", ["rev-parse", hash], { cwd: process.cwd(), encoding: "utf-8" }).trim();
         } catch {
           // Leave as-is, will fail lookup below
         }

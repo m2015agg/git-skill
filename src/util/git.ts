@@ -1,4 +1,4 @@
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 
 export interface GitCommit {
   hash: string;
@@ -48,7 +48,7 @@ const SEP = "---GIT-SKILL-SEP---";
 
 export function isGitRepo(dir: string): boolean {
   try {
-    execSync("git rev-parse --git-dir", { ...EXEC_OPTS, cwd: dir, stdio: "pipe" });
+    execFileSync("git", ["rev-parse", "--git-dir"], { ...EXEC_OPTS, cwd: dir, stdio: "pipe" });
     return true;
   } catch {
     return false;
@@ -57,7 +57,7 @@ export function isGitRepo(dir: string): boolean {
 
 export function getLastCommitHash(cwd: string): string {
   try {
-    return execSync("git rev-parse HEAD", { ...EXEC_OPTS, cwd }).trim();
+    return execFileSync("git", ["rev-parse", "HEAD"], { ...EXEC_OPTS, cwd }).trim();
   } catch {
     return "";
   }
@@ -78,7 +78,8 @@ export function getLog(cwd: string, opts: LogOptions = {}): GitCommit[] {
     if (opts.author) args.push(`--author=${opts.author}`);
     if (opts.branch) args.push(opts.branch);
 
-    const raw = execSync(args.join(" "), { ...EXEC_OPTS, cwd });
+    const [gitCmd, ...gitArgs] = args;
+    const raw = execFileSync(gitCmd, gitArgs, { ...EXEC_OPTS, cwd });
 
     // Split on the SEP that begins each commit header
     // Each commit block starts with SEP
@@ -143,12 +144,12 @@ export function getLog(cwd: string, opts: LogOptions = {}): GitCommit[] {
 
 export function getDiffTree(cwd: string, hash: string): GitFile[] {
   try {
-    const numstatRaw = execSync(
-      `git diff-tree --no-commit-id -r --numstat -M ${hash}`,
+    const numstatRaw = execFileSync(
+      "git", ["diff-tree", "--no-commit-id", "-r", "--numstat", "-M", hash],
       { ...EXEC_OPTS, cwd }
     );
-    const nameStatusRaw = execSync(
-      `git diff-tree --no-commit-id -r --name-status -M ${hash}`,
+    const nameStatusRaw = execFileSync(
+      "git", ["diff-tree", "--no-commit-id", "-r", "--name-status", "-M", hash],
       { ...EXEC_OPTS, cwd }
     );
 
@@ -196,8 +197,8 @@ export function getDiffTree(cwd: string, hash: string): GitFile[] {
 
 export function getBranches(cwd: string): GitBranch[] {
   try {
-    const raw = execSync(
-      `git branch -a --format="%(refname:short)\t%(HEAD)\t%(objectname:short)"`,
+    const raw = execFileSync(
+      "git", ["branch", "-a", "--format=%(refname:short)\t%(HEAD)\t%(objectname:short)"],
       { ...EXEC_OPTS, cwd }
     );
 
@@ -221,8 +222,8 @@ export function getBranches(cwd: string): GitBranch[] {
 
 export function getTags(cwd: string): GitTag[] {
   try {
-    const raw = execSync(
-      `git tag -l --format="%(refname:short)\t%(objectname:short)\t%(creatordate:iso-strict)\t%(subject)"`,
+    const raw = execFileSync(
+      "git", ["tag", "-l", "--format=%(refname:short)\t%(objectname:short)\t%(creatordate:iso-strict)\t%(subject)"],
       { ...EXEC_OPTS, cwd }
     );
 

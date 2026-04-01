@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { openDb } from "../util/db.js";
 import { join } from "path";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 
 interface BlameEntry {
   hash: string;
@@ -64,7 +64,7 @@ export function blameCommand(): Command {
         // Run git blame --porcelain
         let porcelainOutput: string;
         try {
-          porcelainOutput = execSync(`git blame --porcelain ${filePath}`, {
+          porcelainOutput = execFileSync("git", ["blame", "--porcelain", filePath], {
             cwd: process.cwd(),
             encoding: "utf-8",
           });

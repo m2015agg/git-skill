@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { join } from "path";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import { openDb, hasDb } from "../util/db.js";
 
 interface CommitRow {
@@ -78,7 +78,7 @@ export function releaseNotesCommand(): Command {
       // Resolve hashes in range via git
       let rangeHashes: string[] = [];
       try {
-        rangeHashes = execSync(`git rev-list ${range}`, {
+        rangeHashes = execFileSync("git", ["rev-list", range], {
           cwd: process.cwd(),
           encoding: "utf-8",
           timeout: 10000,
