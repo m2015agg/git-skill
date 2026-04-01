@@ -18,7 +18,11 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult |
     });
     if (!response.ok) return null;
     const data = await response.json() as any;
+    // OpenAI format
     if (data.data?.[0]?.embedding) return { vector: data.data[0].embedding, model: config.embedding.model };
+    // Ollama /api/embed format (embeddings array)
+    if (data.embeddings?.[0]) return { vector: data.embeddings[0], model: config.embedding.model };
+    // Ollama legacy format
     if (data.embedding) return { vector: data.embedding, model: config.embedding.model };
     return null;
   } catch { return null; }
