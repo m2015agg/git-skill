@@ -3,6 +3,7 @@ import { join, resolve } from "path";
 import { openDb } from "../util/db.js";
 import { getLog, getDiffTree, getBranches, getTags } from "../util/git.js";
 import { runAllAnalytics } from "../util/analytics.js";
+import { computeBuiltinMetrics } from "../util/metrics.js";
 
 interface SnapshotOptions {
   force?: boolean;
@@ -179,6 +180,11 @@ export async function snapshotCommand(opts: SnapshotOptions = {}): Promise<void>
   process.stdout.write("Phase 5: Running analytics...\n");
   runAllAnalytics(db);
   process.stdout.write("  Analytics complete\n");
+
+  // Phase 6: Built-in metrics
+  process.stdout.write("Phase 6: Computing built-in metrics...\n");
+  computeBuiltinMetrics(db);
+  process.stdout.write("  Metrics complete\n");
 
   // Store last_snapshot timestamp
   db.prepare("INSERT OR REPLACE INTO schema_meta (key, value) VALUES ('last_snapshot', ?)").run(

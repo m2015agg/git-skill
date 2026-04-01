@@ -14,6 +14,7 @@ import { blameCommand } from "./commands/blame.js";
 import { diffSummaryCommand } from "./commands/diff-summary.js";
 import { trendsCommand } from "./commands/trends.js";
 import { regressionCommand } from "./commands/regression.js";
+import { metricCommand } from "./commands/metric.js";
 
 const program = new Command();
 program
@@ -34,6 +35,7 @@ program.addCommand(blameCommand());
 program.addCommand(diffSummaryCommand());
 program.addCommand(trendsCommand());
 program.addCommand(regressionCommand());
+program.addCommand(metricCommand());
 
 program
   .command("snapshot")
