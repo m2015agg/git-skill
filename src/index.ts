@@ -19,6 +19,12 @@ import { embedCommand } from "./commands/embed.js";
 import { enrichCommand } from "./commands/enrich.js";
 import { whyCommand } from "./commands/why.js";
 import { releaseNotesCommand } from "./commands/release-notes.js";
+import { approveCommand } from "./commands/approve.js";
+import { docsCommand } from "./commands/docs.js";
+import { installCommand } from "./commands/install.js";
+import { cronCommand } from "./commands/cron.js";
+import { updateCommand } from "./commands/update.js";
+import { uninstallCommand } from "./commands/uninstall.js";
 
 const program = new Command();
 program
@@ -44,6 +50,12 @@ program.addCommand(embedCommand());
 program.addCommand(enrichCommand());
 program.addCommand(whyCommand());
 program.addCommand(releaseNotesCommand());
+program.addCommand(approveCommand());
+program.addCommand(docsCommand());
+program.addCommand(installCommand());
+program.addCommand(cronCommand());
+program.addCommand(updateCommand());
+program.addCommand(uninstallCommand());
 
 program
   .command("snapshot")
