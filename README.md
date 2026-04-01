@@ -214,6 +214,10 @@ Claude can read the config, run the commands, and interpret the results. When in
 - [`@m2015agg/context7-skill`](https://github.com/m2015agg/context7-skill) — Library docs cache
 - `@m2015agg/git-skill` — Git history intelligence
 
+## Known Gaps
+
+- **Team sharing** — Enrichments and embeddings are per-user. On a team of 3, each person pays independently for identical LLM analysis. A JSONL export/import mechanism is planned to share enrichments via git. See [team-collaboration.md](docs/specs/team-collaboration.md) for the full brainstorm.
+
 ## Detailed Documentation
 
 - [Design Spec](docs/specs/2026-03-31-git-skill-design.md) — Full architecture, schema, algorithms, and test strategy
