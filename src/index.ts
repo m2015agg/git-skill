@@ -29,6 +29,7 @@ import { cronCommand } from "./commands/cron.js";
 import { updateCommand } from "./commands/update.js";
 import { uninstallCommand } from "./commands/uninstall.js";
 import { contextUpdateCommand } from "./commands/context-update.js";
+import { verifyCommand } from "./commands/verify.js";
 
 const program = new Command();
 program
@@ -61,6 +62,7 @@ program.addCommand(cronCommand());
 program.addCommand(updateCommand());
 program.addCommand(uninstallCommand());
 program.addCommand(contextUpdateCommand());
+program.addCommand(verifyCommand());
 
 program
   .command("snapshot")

@@ -76,6 +76,62 @@ function buildSummary(historyDir: string): HealthSummary {
     // Generate alerts
     const alerts: string[] = [];
 
+    // 1. Value Thrashing — files edited 3+ times in last 10 commits
+    const thrashingFiles = db.prepare(`
+      SELECT file_path, COUNT(*) as cnt
+      FROM commit_files
+      WHERE commit_hash IN (SELECT hash FROM commits ORDER BY timestamp DESC LIMIT 10)
+      GROUP BY file_path
+      HAVING cnt >= 3
+      ORDER BY cnt DESC
+      LIMIT 3
+    `).all() as { file_path: string; cnt: number }[];
+    for (const f of thrashingFiles) {
+      alerts.push(`[WARN] Thrashing: ${f.file_path} edited ${f.cnt} times in last 10 commits`);
+    }
+
+    // 2. Revert Chains — files involved in revert commits (last 50 commits)
+    const revertedFiles = db.prepare(`
+      SELECT cf.file_path, COUNT(*) as revert_count
+      FROM commits c
+      JOIN commit_files cf ON cf.commit_hash = c.hash
+      WHERE (c.message LIKE '%revert%' OR c.message LIKE '%Revert%')
+        AND c.hash IN (SELECT hash FROM commits ORDER BY timestamp DESC LIMIT 50)
+      GROUP BY cf.file_path
+      HAVING revert_count >= 1
+      ORDER BY revert_count DESC
+      LIMIT 3
+    `).all() as { file_path: string; revert_count: number }[];
+    for (const f of revertedFiles) {
+      alerts.push(`[WARN] Reverted: ${f.file_path} involved in ${f.revert_count} reverts recently`);
+    }
+
+    // 3. Fix-on-Fix Chains — files touched by 2+ sequential fix commits
+    const fixCommits = db.prepare(`
+      SELECT hash FROM commits
+      WHERE message LIKE '%fix%' OR message LIKE '%Fix%'
+      ORDER BY timestamp DESC
+      LIMIT 20
+    `).all() as { hash: string }[];
+
+    if (fixCommits.length >= 2) {
+      const fixHashes = fixCommits.map(r => r.hash);
+      const placeholders = fixHashes.map(() => "?").join(",");
+      const fixFileCounts = db.prepare(`
+        SELECT file_path, COUNT(DISTINCT commit_hash) as fix_count
+        FROM commit_files
+        WHERE commit_hash IN (${placeholders})
+        GROUP BY file_path
+        HAVING fix_count >= 2
+        ORDER BY fix_count DESC
+        LIMIT 3
+      `).all(...fixHashes) as { file_path: string; fix_count: number }[];
+      for (const f of fixFileCounts) {
+        alerts.push(`[WARN] Fix-on-fix: ${f.file_path} has ${f.fix_count} sequential fixes`);
+      }
+    }
+
+    // Also keep metric-level alerts for revert rate and fix-on-fix rate thresholds
     const revertRate = metrics.find(m => m.name === "revert_rate");
     if (revertRate && revertRate.latest > 0.05) {
       alerts.push(`[WARN] Revert rate: ${(revertRate.latest * 100).toFixed(1)}% (threshold: 5%)`);
@@ -86,22 +142,8 @@ function buildSummary(historyDir: string): HealthSummary {
       alerts.push(`[WARN] Fix-on-fix rate: ${(fixOnFix.latest * 100).toFixed(1)}% (threshold: 20%)`);
     }
 
-    const sameFileChurn = metrics.find(m => m.name === "same_file_churn");
-    if (sameFileChurn && sameFileChurn.latest > 0) {
-      // Find which files are thrashing
-      const thrashingFiles = db.prepare(`
-        SELECT file_path, COUNT(*) as cnt
-        FROM commit_files
-        WHERE commit_hash IN (SELECT hash FROM commits ORDER BY timestamp DESC LIMIT 10)
-        GROUP BY file_path
-        HAVING cnt >= 3
-        ORDER BY cnt DESC
-        LIMIT 3
-      `).all() as { file_path: string; cnt: number }[];
-      for (const f of thrashingFiles) {
-        alerts.push(`[WARN] Thrashing: ${f.file_path} (${f.cnt} edits in last 10 commits)`);
-      }
-    }
+    // Cap at 5 alerts, most specific (file-level) first
+    alerts.splice(5);
 
     const snapshotMeta = db.prepare(
       "SELECT value FROM schema_meta WHERE key = 'last_snapshot'"
