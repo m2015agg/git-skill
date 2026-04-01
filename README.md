@@ -148,6 +148,8 @@ git-skill why <hash>          # View enrichment for a commit
 | `git-skill diff-summary <range>` | Range summary (e.g., `v1.0..v1.1`) |
 | `git-skill why <hash>` | Commit intent/reasoning |
 | `git-skill regression` | Change-point detection |
+| `git-skill verify` | Check staged changes against history (was this tried before?) |
+| `git-skill context-update` | Refresh Claude memory with codebase health |
 | `git-skill doctor` | Health check |
 
 ### Write (require confirmation)
@@ -198,6 +200,43 @@ Automatically tracked per commit:
 - **Time-to-commit** — time between commits
 - **Same-file churn** — same file 3+ times in recent commits (thrashing)
 
+## Smart Churn Alerts
+
+Automatically detected and written to Claude's memory on every commit:
+
+- **Thrashing** — `[WARN] Thrashing: block_generator.py edited 5 times in last 10 commits`
+- **Revert chains** — `[WARN] Reverted: rag.py involved in 2 reverts recently`
+- **Fix-on-fix** — `[WARN] Fix-on-fix: semantic_tier.py has 3 sequential fixes`
+- **Elevated rates** — `[WARN] Revert rate: 10.0% (threshold: 5%)`
+
+These appear in Claude's memory at session start. No manual action needed — the post-commit hook keeps them fresh.
+
+## Verify: "Was This Tried Before?"
+
+Check staged changes against enriched history before committing:
+
+```bash
+git-skill verify                  # Check all staged changes
+git-skill verify --file src/foo.py  # Check specific file
+git-skill verify --json           # Structured output
+```
+
+Example output:
+```
+[BLOCK] block_generator.py — max_tokens value
+  You're setting max_tokens to 150. This value has been tried before:
+  - ea2761a (Mar 27): Set to 150, caused Sonnet to write paragraphs
+  - 0090014 (Mar 27): Increased to 200 because 150 truncated Day 2 content
+  Suggestion: The problem isn't the token count — it's the prompt structure.
+
+[WARN] rag.py — source truncation pattern
+  Similar approach tried in eeea6a4 and reverted in e0137be (prod risk).
+
+[PASS] api/routes.py — no concerning history
+```
+
+Works without an LLM configured (local-only analysis shows edit counts and revert history). With an LLM configured, provides deep reasoning about why previous attempts failed.
+
 ## Need Help?
 
 git-skill is designed for AI agents. If you're using Claude Code, just ask:
@@ -222,7 +261,9 @@ Claude can read the config, run the commands, and interpret the results. When in
 
 - [Design Spec](docs/specs/2026-03-31-git-skill-design.md) — Full architecture, schema, algorithms, and test strategy
 - [GeorgeWorks: Memory Integration](docs/specs/context-injection.md) — How context-update writes to Claude's memory system, internal architecture of `findRelevantMemories`, consolidation phases, and thresholds
-- [Opus Verification Layer](docs/specs/opus-verification-layer.md) — Concept for pre-commit AI verification that catches reverted re-introductions and thrashing patterns
+- [Opus Verification Layer](docs/specs/opus-verification-layer.md) — Design and real-world case studies for the verify command
+- [Churn Alerts + Verify](docs/specs/churn-alerts-and-verify.md) — Passive alerts and active verification implementation details
+- [Team Collaboration](docs/specs/team-collaboration.md) — Brainstorm on sharing enrichments across teams
 
 ## License
 

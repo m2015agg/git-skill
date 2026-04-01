@@ -19,6 +19,8 @@ export function getSkillDoc(): string {
 | \`git-skill diff-summary <range>\` | Range summary |
 | \`git-skill why <hash>\` | Commit intent/reasoning |
 | \`git-skill regression\` | Change-point detection |
+| \`git-skill verify\` | Check staged changes against history (was this tried before?) |
+| \`git-skill context-update\` | Refresh Claude memory with codebase health |
 | \`git-skill doctor\` | Health check |
 
 ### Write Commands (require confirmation)
@@ -26,6 +28,12 @@ export function getSkillDoc(): string {
 | \`git-skill enrich [range]\` | Backfill LLM enrichments |
 | \`git-skill release-notes <range>\` | Generate release notes |
 | \`git-skill embed\` | Generate embeddings |
+
+### Smart Alerts (automatic, written to Claude memory)
+- Thrashing detection: files edited 3+ times in last 10 commits
+- Revert chain detection: files involved in recent reverts
+- Fix-on-fix detection: sequential fix commits on same file
+- Runs on every commit (post-commit hook) and nightly (cron)
 
 ### Global Flags
 - \`--json\` — structured output
