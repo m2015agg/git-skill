@@ -61,6 +61,15 @@ export function captureCommand(): Command {
         });
         insertMany(files);
 
+        // Update FTS index so commit is immediately searchable
+        const insertFts = db.prepare(
+          "INSERT INTO history_fts (hash, type, path, message, detail) VALUES (?, ?, ?, ?, ?)"
+        );
+        insertFts.run(commit.hash, "commit", "", commit.message, "");
+        for (const f of files) {
+          insertFts.run(commit.hash, "file", f.path, "", f.status);
+        }
+
         if (!opts.hook) {
           write(`Captured ${commit.hash.slice(0, 7)}: ${commit.message} (${files.length} files)\n`);
         }

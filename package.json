@@ -1,6 +1,6 @@
 {
   "name": "@m2015agg/git-skill",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Git history intelligence for LLMs — institutional memory over codebase evolution",
   "type": "module",
   "main": "./dist/index.js",
