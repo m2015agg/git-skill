@@ -86,7 +86,8 @@ async function callLlm(
       .replace(/\s*```\s*$/i, "")
       .trim();
     return JSON.parse(cleaned);
-  } catch {
+  } catch (e: any) {
+    process.stderr.write(`Enrich error: ${e.message?.slice(0, 150) ?? "unknown"}\n`);
     return null;
   }
 }
