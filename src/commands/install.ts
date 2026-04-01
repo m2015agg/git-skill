@@ -66,10 +66,20 @@ export function installCommand(): Command {
       write("\n");
       write("Optional — LLM Enrichment (commit analysis):\n");
       write("  Edit ~/.config/git-skill/config.json and set:\n");
+      write("\n");
+      write("  Anthropic (recommended):\n");
       write('    enrichment.enabled = true\n');
-      write('    enrichment.url = "https://api.anthropic.com/v1/messages"  (or OpenAI-compatible)\n');
-      write('    enrichment.model = "claude-sonnet-4-5-20250514"           (recommended)\n');
-      write('    enrichment.apiKey = "${GIT_SKILL_LLM_KEY}"               (env var or raw key)\n');
+      write('    enrichment.url = "https://api.anthropic.com/v1/messages"\n');
+      write('    enrichment.model = "claude-sonnet-4-5-20250514"\n');
+      write('    enrichment.apiKey = "${GIT_SKILL_LLM_KEY}"\n');
+      write("\n");
+      write("  OpenAI:\n");
+      write('    enrichment.url = "https://api.openai.com/v1/chat/completions"\n');
+      write('    enrichment.model = "gpt-4o"\n');
+      write("\n");
+      write("  Set your API key:\n");
+      write('    export GIT_SKILL_LLM_KEY="sk-ant-..."   # add to ~/.bashrc or ~/.zshrc\n');
+      write("\n");
       write("  Then run: git-skill enrich\n");
 
       if (!opts.ci) {

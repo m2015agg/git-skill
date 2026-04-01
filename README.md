@@ -48,6 +48,7 @@ Enrich your commit history with AI-analyzed intent, reasoning, and impact. Uses 
 
 Edit `~/.config/git-skill/config.json`:
 
+**Anthropic (recommended):**
 ```json
 {
   "enrichment": {
@@ -61,12 +62,26 @@ Edit `~/.config/git-skill/config.json`:
 }
 ```
 
+**OpenAI:**
+```json
+{
+  "enrichment": {
+    "enabled": true,
+    "url": "https://api.openai.com/v1/chat/completions",
+    "model": "gpt-4o",
+    "apiKey": "${GIT_SKILL_LLM_KEY}",
+    "batchSize": 10,
+    "maxTokensPerCommit": 5000
+  }
+}
+```
+
 Set your API key:
 
 ```bash
 export GIT_SKILL_LLM_KEY="sk-ant-..."   # Anthropic
 # or
-export GIT_SKILL_LLM_KEY="sk-..."       # OpenAI (change url + model)
+export GIT_SKILL_LLM_KEY="sk-..."       # OpenAI
 ```
 
 Then run:
@@ -147,6 +162,16 @@ Automatically tracked per commit:
 - **Scope creep** — files per commit trending up
 - **Time-to-commit** — time between commits
 - **Same-file churn** — same file 3+ times in recent commits (thrashing)
+
+## Need Help?
+
+git-skill is designed for AI agents. If you're using Claude Code, just ask:
+
+> "Set up git-skill enrichment with my Anthropic key"
+> "Run git-skill hotspots and explain what's churning"
+> "Use git-skill to find why we reverted that auth change"
+
+Claude can read the config, run the commands, and interpret the results. When in doubt, ask Claude.
 
 ## Part of the CLI Skills Ecosystem
 

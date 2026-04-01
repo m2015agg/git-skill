@@ -54,22 +54,30 @@ async function callLlm(
   maxTokens: number,
   prompt: string
 ): Promise<Record<string, string> | null> {
+  const isAnthropic = url.includes("anthropic.com");
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
+  if (isAnthropic) {
+    if (apiKey) headers["x-api-key"] = apiKey;
+    headers["anthropic-version"] = "2023-06-01";
+  } else {
+    if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+  }
+
+  const body = isAnthropic
+    ? { model, max_tokens: maxTokens, temperature: 0, messages: [{ role: "user", content: prompt }] }
+    : { model, max_tokens: maxTokens, temperature: 0, messages: [{ role: "user", content: prompt }] };
 
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model,
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: maxTokens,
-        temperature: 0,
-      }),
-    });
-    if (!response.ok) return null;
+    const response = await fetch(url, { method: "POST", headers, body: JSON.stringify(body) });
+    if (!response.ok) {
+      const err = await response.text().catch(() => "");
+      if (err) process.stderr.write(`API error: ${response.status} ${err.slice(0, 200)}\n`);
+      return null;
+    }
     const data = (await response.json()) as any;
+    // OpenAI format: choices[0].message.content
+    // Anthropic format: content[0].text
     const text = data.choices?.[0]?.message?.content ?? data.content?.[0]?.text ?? "";
     const cleaned = text
       .replace(/^```(?:json)?\s*/i, "")
