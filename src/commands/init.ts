@@ -1,9 +1,9 @@
 import { Command } from "commander";
 import { join } from "path";
 import { existsSync, readFileSync, writeFileSync, appendFileSync, mkdirSync } from "fs";
+import { execFileSync } from "child_process";
 import { installHook } from "../util/hooks.js";
 import { isGitRepo } from "../util/git.js";
-import { execSync } from "child_process";
 import { upsertSection } from "../util/claude-md.js";
 import { getSkillDoc } from "./docs.js";
 import { WALKTHROUGH } from "../templates/walkthrough.js";
@@ -67,7 +67,7 @@ export function initCommand(): Command {
         write("5. Running initial snapshot...\n");
         try {
           const entryPoint = process.argv[1];
-          execSync(`node ${entryPoint} snapshot`, { cwd, stdio: "inherit" });
+          execFileSync("node", [entryPoint, "snapshot"], { cwd, stdio: "inherit" });
         } catch {
           write("   Warning: Snapshot failed. Run `git-skill snapshot` manually.\n");
         }
@@ -79,7 +79,7 @@ export function initCommand(): Command {
       write("6. Pre-approving read-only commands...\n");
       try {
         const entryPoint = process.argv[1];
-        execSync(`node ${entryPoint} approve`, { cwd, stdio: "inherit" });
+        execFileSync("node", [entryPoint, "approve"], { cwd, stdio: "inherit" });
       } catch {
         write("   Warning: Approve failed. Run `git-skill approve` manually.\n");
       }
