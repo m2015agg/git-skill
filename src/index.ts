@@ -10,6 +10,10 @@ import { hotspotsCommand } from "./commands/hotspots.js";
 import { couplingCommand } from "./commands/coupling.js";
 import { decisionsCommand } from "./commands/decisions.js";
 import { expertsCommand } from "./commands/experts.js";
+import { blameCommand } from "./commands/blame.js";
+import { diffSummaryCommand } from "./commands/diff-summary.js";
+import { trendsCommand } from "./commands/trends.js";
+import { regressionCommand } from "./commands/regression.js";
 
 const program = new Command();
 program
@@ -26,6 +30,10 @@ program.addCommand(hotspotsCommand());
 program.addCommand(couplingCommand());
 program.addCommand(decisionsCommand());
 program.addCommand(expertsCommand());
+program.addCommand(blameCommand());
+program.addCommand(diffSummaryCommand());
+program.addCommand(trendsCommand());
+program.addCommand(regressionCommand());
 
 program
   .command("snapshot")
