@@ -9,28 +9,51 @@ interface CommitRow {
   message: string;
   author: string;
   timestamp: string;
+  insertions: number;
+  deletions: number;
+  files_changed: number;
+}
+
+interface FileRow {
+  file_path: string;
+  status: string;
+  insertions: number;
+  deletions: number;
+}
+
+function getDiff(cwd: string, hash: string, maxChars = 3000): string {
+  try {
+    const raw = execSync(`git show --patch --no-color ${hash}`, {
+      cwd,
+      encoding: "utf-8",
+      timeout: 10000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    // Skip the header (everything before first diff --git)
+    const diffStart = raw.indexOf("diff --git");
+    if (diffStart === -1) return "(no diff)";
+    const diff = raw.slice(diffStart);
+    if (diff.length <= maxChars) return diff;
+    return diff.slice(0, maxChars) + `\n... (truncated, ${diff.length - maxChars} chars omitted)`;
+  } catch {
+    return "(diff unavailable)";
+  }
+}
+
+function getRecentMessages(db: ReturnType<typeof openDb>, beforeTimestamp: string, limit = 3): string[] {
+  const rows = db
+    .prepare("SELECT message FROM commits WHERE timestamp < ? ORDER BY timestamp DESC LIMIT ?")
+    .all(beforeTimestamp, limit) as { message: string }[];
+  return rows.map((r) => r.message);
 }
 
 async function callLlm(
   url: string,
   model: string,
   apiKey: string | undefined,
-  commit: CommitRow
-): Promise<{ intent?: string; reasoning?: string; category?: string; alternatives_considered?: string; session_context?: string } | null> {
-  const prompt = `Analyze this git commit and respond with ONLY a JSON object (no markdown, no explanation):
-{
-  "intent": "one sentence describing what this commit does",
-  "reasoning": "why this change was likely made",
-  "category": "one of: feature, bugfix, refactor, docs, chore, test, style, perf",
-  "alternatives_considered": "brief note on alternatives (optional)",
-  "session_context": "broader context about what was being worked on (optional)"
-}
-
-Commit hash: ${commit.hash.slice(0, 7)}
-Author: ${commit.author}
-Date: ${commit.timestamp.slice(0, 10)}
-Message: ${commit.message}`;
-
+  maxTokens: number,
+  prompt: string
+): Promise<Record<string, string> | null> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
 
@@ -41,19 +64,65 @@ Message: ${commit.message}`;
       body: JSON.stringify({
         model,
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 300,
+        max_tokens: maxTokens,
         temperature: 0,
       }),
     });
     if (!response.ok) return null;
-    const data = await response.json() as any;
+    const data = (await response.json()) as any;
     const text = data.choices?.[0]?.message?.content ?? data.content?.[0]?.text ?? "";
-    // Strip potential markdown code fences
-    const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "").trim();
+    const cleaned = text
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```\s*$/i, "")
+      .trim();
     return JSON.parse(cleaned);
   } catch {
     return null;
   }
+}
+
+function buildPrompt(
+  commit: CommitRow,
+  files: FileRow[],
+  diff: string,
+  recentMessages: string[]
+): string {
+  const fileList = files
+    .map((f) => `  [${f.status}] ${f.file_path} (+${f.insertions}/-${f.deletions})`)
+    .join("\n");
+
+  const recentContext =
+    recentMessages.length > 0
+      ? `\nRecent commits before this one:\n${recentMessages.map((m) => `  - ${m}`).join("\n")}\n`
+      : "";
+
+  return `You are analyzing a git commit to extract structured intelligence about what changed and why.
+
+Study the commit message, file list, and diff carefully. Respond with ONLY a JSON object — no markdown fences, no explanation.
+
+{
+  "intent": "One clear sentence: what is the developer trying to accomplish with this commit?",
+  "what_changed": "Concrete description of the actual code changes (functions added/removed/modified, config changes, structural changes). Be specific — reference actual names from the diff.",
+  "goal": "The broader goal or problem being solved. Why does this change exist? What user/system need does it serve?",
+  "reasoning": "Why was this approach chosen? What tradeoffs were made?",
+  "category": "One of: feature, bugfix, refactor, cleanup, docs, test, config, perf, revert",
+  "impact": "One of: low (typo, comment, minor tweak), medium (single feature/fix, localized change), high (architecture change, breaking change, cross-cutting concern)",
+  "alternatives_considered": "What other approaches could have been taken? Say 'none apparent' if the change is straightforward.",
+  "session_context": "Based on the recent commits and this change, what broader work session or initiative is this part of?"
+}
+
+--- COMMIT ---
+Hash: ${commit.hash.slice(0, 7)}
+Author: ${commit.author}
+Date: ${commit.timestamp.slice(0, 10)}
+Message: ${commit.message}
+Stats: +${commit.insertions}/-${commit.deletions} across ${commit.files_changed} files
+${recentContext}
+--- FILES CHANGED ---
+${fileList}
+
+--- DIFF ---
+${diff}`;
 }
 
 function resolveEnvVar(val: string): string | undefined {
@@ -67,9 +136,10 @@ export function enrichCommand(): Command {
     .description("Backfill LLM enrichments for commit history")
     .argument("[range]", "Git range to filter commits (e.g. v1.0..v1.1)")
     .option("--dry-run", "Show what would be enriched without doing it")
-    .option("--limit <n>", "Max commits to enrich", "50")
-    .action(async (range: string | undefined, opts: { dryRun?: boolean; limit: string }) => {
-      const historyDir = join(process.cwd(), ".git-history");
+    .option("--limit <n>", "Max commits to enrich (default: all)")
+    .action(async (range: string | undefined, opts: { dryRun?: boolean; limit?: string }) => {
+      const cwd = process.cwd();
+      const historyDir = join(cwd, ".git-history");
       if (!hasDb(historyDir)) {
         process.stdout.write("No .git-history/ database found. Run `git-skill snapshot` first.\n");
         process.exit(1);
@@ -77,28 +147,28 @@ export function enrichCommand(): Command {
 
       const db = openDb(historyDir);
       try {
-        const limit = parseInt(opts.limit, 10) || 50;
+        let query = `
+          SELECT c.hash, c.message, c.author, c.timestamp, c.insertions, c.deletions, c.files_changed
+          FROM commits c
+          LEFT JOIN enrichments e ON c.hash = e.commit_hash
+          WHERE e.commit_hash IS NULL
+          ORDER BY c.timestamp DESC
+        `;
+        if (opts.limit) query += ` LIMIT ${parseInt(opts.limit, 10)}`;
 
-        // Get unenriched commits
-        let commits = db
-          .prepare(`
-            SELECT c.hash, c.message, c.author, c.timestamp
-            FROM commits c
-            LEFT JOIN enrichments e ON c.hash = e.commit_hash
-            WHERE e.commit_hash IS NULL
-            ORDER BY c.timestamp DESC
-            LIMIT ?
-          `)
-          .all(limit) as CommitRow[];
+        let commits = db.prepare(query).all() as CommitRow[];
 
         // Filter by range if provided
         if (range) {
           try {
             const rangeHashes = execSync(`git rev-list ${range}`, {
-              cwd: process.cwd(),
+              cwd,
               encoding: "utf-8",
               timeout: 10000,
-            }).trim().split("\n").filter(Boolean);
+            })
+              .trim()
+              .split("\n")
+              .filter(Boolean);
             const rangeSet = new Set(rangeHashes);
             commits = commits.filter((c) => rangeSet.has(c.hash));
           } catch {
@@ -115,7 +185,9 @@ export function enrichCommand(): Command {
         const enrichEnabled = config?.enrichment?.enabled && config.enrichment.url;
 
         if (opts.dryRun) {
-          process.stdout.write(`Would enrich ${commits.length} commit${commits.length !== 1 ? "s" : ""}:\n`);
+          process.stdout.write(
+            `Would enrich ${commits.length} commit${commits.length !== 1 ? "s" : ""}:\n`
+          );
           for (const c of commits.slice(0, 10)) {
             process.stdout.write(`  ${c.hash.slice(0, 7)}  ${c.message.slice(0, 60)}\n`);
           }
@@ -127,13 +199,21 @@ export function enrichCommand(): Command {
 
         if (!enrichEnabled) {
           process.stdout.write(
-            `Enrichment not configured. Set enrichment.enabled and enrichment.url in ~/.config/git-skill/config.json\n`
+            "Enrichment not configured. Set enrichment.enabled and enrichment.url in ~/.config/git-skill/config.json\n"
           );
-          process.stdout.write(`${commits.length} commit${commits.length !== 1 ? "s" : ""} would be enriched.\n`);
+          process.stdout.write(
+            `Recommended models: claude-sonnet-4-5-20250514, gpt-4o, gpt-4o-mini\n`
+          );
+          process.stdout.write(
+            `${commits.length} commit${commits.length !== 1 ? "s" : ""} would be enriched.\n`
+          );
           return;
         }
 
-        process.stdout.write(`Enriching ${commits.length} commits...\n`);
+        const maxTokens = config!.enrichment.maxTokensPerCommit || 5000;
+        process.stdout.write(
+          `Enriching ${commits.length} commits (model: ${config!.enrichment.model}, max_tokens: ${maxTokens})...\n`
+        );
 
         const apiKey = resolveEnvVar(config!.enrichment.apiKey);
 
@@ -147,17 +227,43 @@ export function enrichCommand(): Command {
         let successCount = 0;
         let failCount = 0;
 
-        for (const commit of commits) {
+        for (let i = 0; i < commits.length; i++) {
+          const commit = commits[i];
+
+          // Get file list from SQLite
+          const files = db
+            .prepare(
+              "SELECT file_path, status, insertions, deletions FROM commit_files WHERE commit_hash = ?"
+            )
+            .all(commit.hash) as FileRow[];
+
+          // Get actual diff (truncated)
+          const diff = getDiff(cwd, commit.hash);
+
+          // Get recent commit messages for session context
+          const recentMessages = getRecentMessages(db, commit.timestamp);
+
+          // Build rich prompt
+          const prompt = buildPrompt(commit, files, diff, recentMessages);
+
           const result = await callLlm(
             config!.enrichment.url,
             config!.enrichment.model,
             apiKey,
-            commit
+            maxTokens,
+            prompt
           );
+
           if (result) {
+            // Combine new fields into existing schema
+            const intentParts = [result.intent];
+            if (result.what_changed) intentParts.push(`Changes: ${result.what_changed}`);
+            if (result.goal) intentParts.push(`Goal: ${result.goal}`);
+            if (result.impact) intentParts.push(`Impact: ${result.impact}`);
+
             insertEnrichment.run({
               commitHash: commit.hash,
-              intent: result.intent ?? null,
+              intent: intentParts.join(" | "),
               reasoning: result.reasoning ?? null,
               category: result.category ?? null,
               alternativesConsidered: result.alternatives_considered ?? null,
@@ -167,9 +273,18 @@ export function enrichCommand(): Command {
           } else {
             failCount++;
           }
+
+          // Progress
+          if ((i + 1) % 10 === 0 || i === commits.length - 1) {
+            process.stdout.write(
+              `  ${i + 1}/${commits.length} (${successCount} ok, ${failCount} failed)\n`
+            );
+          }
         }
 
-        process.stdout.write(`Done. Enriched: ${successCount}, Failed: ${failCount}\n`);
+        process.stdout.write(
+          `Done. Enriched: ${successCount}, Failed: ${failCount}\n`
+        );
       } finally {
         db.close();
       }
