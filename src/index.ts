@@ -2,6 +2,8 @@
 import { Command } from "commander";
 import { captureCommand } from "./commands/capture.js";
 import { snapshotCommand } from "./commands/snapshot.js";
+import { initCommand } from "./commands/init.js";
+import { doctorCommand } from "./commands/doctor.js";
 
 const program = new Command();
 program
@@ -10,6 +12,8 @@ program
   .version("0.1.0");
 
 program.addCommand(captureCommand());
+program.addCommand(initCommand());
+program.addCommand(doctorCommand());
 
 program
   .command("snapshot")
