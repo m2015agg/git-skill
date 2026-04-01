@@ -42,6 +42,45 @@ Or manually edit `~/.config/git-skill/config.json`:
 }
 ```
 
+## LLM Enrichment (Optional)
+
+Enrich your commit history with AI-analyzed intent, reasoning, and impact. Uses the actual diff + file list + surrounding commits to understand *what changed and why*.
+
+Edit `~/.config/git-skill/config.json`:
+
+```json
+{
+  "enrichment": {
+    "enabled": true,
+    "url": "https://api.anthropic.com/v1/messages",
+    "model": "claude-sonnet-4-5-20250514",
+    "apiKey": "${GIT_SKILL_LLM_KEY}",
+    "batchSize": 10,
+    "maxTokensPerCommit": 5000
+  }
+}
+```
+
+Set your API key:
+
+```bash
+export GIT_SKILL_LLM_KEY="sk-ant-..."   # Anthropic
+# or
+export GIT_SKILL_LLM_KEY="sk-..."       # OpenAI (change url + model)
+```
+
+Then run:
+
+```bash
+git-skill enrich              # Enrich all unenriched commits
+git-skill enrich --dry-run    # Preview what would be enriched
+git-skill enrich --limit 50   # Enrich 50 at a time
+git-skill enrich v1.0..v1.1   # Enrich a specific range
+git-skill why <hash>          # View enrichment for a commit
+```
+
+**Supported providers:** Any OpenAI-compatible chat endpoint — Anthropic, OpenAI, Ollama, LMStudio, Together, etc. Recommended model: `claude-sonnet-4-5-20250514` or `gpt-4o`.
+
 ## Commands
 
 ### Query (read-only, pre-approved for Claude Code)

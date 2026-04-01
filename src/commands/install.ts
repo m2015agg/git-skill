@@ -55,8 +55,22 @@ export function installCommand(): Command {
       write("Next steps:\n");
       write("  cd <your-repo>\n");
       write("  git-skill init          # initialize in a repo\n");
-      write("  git-skill approve       # pre-approve read-only commands in Claude Code\n");
       write("  git-skill doctor        # verify setup health\n");
+      write("\n");
+      write("Optional — Embeddings (semantic search):\n");
+      write("  Edit ~/.config/git-skill/config.json and set:\n");
+      write('    embedding.enabled = true\n');
+      write('    embedding.url = "http://localhost:11434/api/embed"  (Ollama)\n');
+      write('    embedding.model = "mxbai-embed-large"              (or any model)\n');
+      write("  Then run: git-skill embed\n");
+      write("\n");
+      write("Optional — LLM Enrichment (commit analysis):\n");
+      write("  Edit ~/.config/git-skill/config.json and set:\n");
+      write('    enrichment.enabled = true\n');
+      write('    enrichment.url = "https://api.anthropic.com/v1/messages"  (or OpenAI-compatible)\n');
+      write('    enrichment.model = "claude-sonnet-4-5-20250514"           (recommended)\n');
+      write('    enrichment.apiKey = "${GIT_SKILL_LLM_KEY}"               (env var or raw key)\n');
+      write("  Then run: git-skill enrich\n");
 
       if (!opts.ci) {
         write("\nTip: Run `git-skill approve --global` to pre-approve commands globally.\n");
