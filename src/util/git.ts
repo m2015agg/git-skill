@@ -43,7 +43,7 @@ interface LogOptions {
   branch?: string;
 }
 
-const EXEC_OPTS = { timeout: 30000, encoding: "utf-8" as const };
+const EXEC_OPTS = { timeout: 60000, encoding: "utf-8" as const, maxBuffer: 50 * 1024 * 1024 };
 const SEP = "---GIT-SKILL-SEP---";
 
 export function isGitRepo(dir: string): boolean {
