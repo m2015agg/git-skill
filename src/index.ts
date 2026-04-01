@@ -25,6 +25,7 @@ import { installCommand } from "./commands/install.js";
 import { cronCommand } from "./commands/cron.js";
 import { updateCommand } from "./commands/update.js";
 import { uninstallCommand } from "./commands/uninstall.js";
+import { contextUpdateCommand } from "./commands/context-update.js";
 
 const program = new Command();
 program
@@ -56,6 +57,7 @@ program.addCommand(installCommand());
 program.addCommand(cronCommand());
 program.addCommand(updateCommand());
 program.addCommand(uninstallCommand());
+program.addCommand(contextUpdateCommand());
 
 program
   .command("snapshot")

@@ -19,6 +19,7 @@ const READ_COMMANDS = [
   "Bash(git-skill regression:*)",
   "Bash(git-skill doctor:*)",
   "Bash(git-skill metric record:*)",
+  "Bash(git-skill context-update:*)",
 ];
 
 export function approveCommand(): Command {

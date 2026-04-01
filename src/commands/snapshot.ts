@@ -4,6 +4,7 @@ import { openDb } from "../util/db.js";
 import { getLog, getDiffTree, getBranches, getTags } from "../util/git.js";
 import { runAllAnalytics } from "../util/analytics.js";
 import { computeBuiltinMetrics } from "../util/metrics.js";
+import { runContextUpdate } from "./context-update.js";
 
 interface SnapshotOptions {
   force?: boolean;
@@ -192,5 +193,15 @@ export async function snapshotCommand(opts: SnapshotOptions = {}): Promise<void>
   );
 
   db.close();
+
+  // Phase 7: Update Claude memory context
+  process.stdout.write("Phase 7: Updating Claude memory context...\n");
+  try {
+    runContextUpdate(cwd);
+    process.stdout.write("  Memory context updated\n");
+  } catch {
+    process.stdout.write("  Warning: Could not update memory context\n");
+  }
+
   process.stdout.write("Snapshot complete.\n");
 }
