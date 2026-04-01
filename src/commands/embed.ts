@@ -7,7 +7,7 @@ import { generateEmbedding } from "../util/embedding.js";
 export function embedCommand(): Command {
   return new Command("embed")
     .description("Generate/refresh embeddings for commit messages")
-    .option("--limit <n>", "Max commits to embed", "100")
+    .option("--limit <n>", "Max commits to embed (default: all)")
     .option("--force", "Re-embed commits that already have embeddings")
     .action(async (opts: { limit: string; force?: boolean }) => {
       const config = readConfig();
@@ -24,26 +24,19 @@ export function embedCommand(): Command {
 
       const db = openDb(historyDir);
       try {
-        const limit = parseInt(opts.limit, 10) || 100;
+        const limit = opts.limit ? parseInt(opts.limit, 10) : 0;
 
-        let commits: Array<{ hash: string; message: string }>;
+        let query: string;
         if (opts.force) {
-          commits = db
-            .prepare("SELECT hash, message FROM commits ORDER BY timestamp DESC LIMIT ?")
-            .all(limit) as Array<{ hash: string; message: string }>;
+          query = "SELECT hash, message FROM commits ORDER BY timestamp DESC";
         } else {
-          // Get commits that don't have embeddings yet
-          commits = db
-            .prepare(`
-              SELECT c.hash, c.message
-              FROM commits c
-              LEFT JOIN embeddings e ON c.hash = e.commit_hash
-              WHERE e.commit_hash IS NULL
-              ORDER BY c.timestamp DESC
-              LIMIT ?
-            `)
-            .all(limit) as Array<{ hash: string; message: string }>;
+          query = `SELECT c.hash, c.message FROM commits c
+            LEFT JOIN embeddings e ON c.hash = e.commit_hash
+            WHERE e.commit_hash IS NULL ORDER BY c.timestamp DESC`;
         }
+        if (limit > 0) query += ` LIMIT ${limit}`;
+
+        const commits = db.prepare(query).all() as Array<{ hash: string; message: string }>;
 
         if (commits.length === 0) {
           process.stdout.write("No commits to embed.\n");
