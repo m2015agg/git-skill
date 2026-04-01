@@ -1,6 +1,38 @@
 # @m2015agg/git-skill
 
-Git history intelligence for LLMs. Gives AI agents institutional memory over a codebase's evolution, decisions, and health trends.
+**Git history intelligence for LLMs.** Gives AI agents institutional memory over a codebase's evolution, decisions, and health trends.
+
+## Why This Exists
+
+AI coding agents start every session blind. They don't know that `chat.py` has been edited 209 times and is the most volatile file in your project. They don't know you reverted that RAG optimization last week because it broke prod. They don't know the codebase just went through a major refactor and things are stabilizing.
+
+**git-skill fixes this.** It indexes your entire git history into a local SQLite cache, computes analytics (churn hotspots, coupling, decision points, quality metrics), and writes a health summary directly into Claude Code's memory system — so every new session starts with full awareness.
+
+### What It Solves
+
+- **"We tried that already"** — Enrichment data tracks what was tried, reverted, and why. Agents stop re-suggesting failed approaches.
+- **"Why does this keep breaking?"** — Churn hotspots and fix-on-fix metrics surface files that are thrashing. Agents flag risk before touching them.
+- **"Who knows this code?"** — Author expertise mapping shows who has the most context on any file or directory.
+- **"What happened while I was gone?"** — Decision points, trends, and release notes give a complete picture of codebase evolution.
+- **"The agent has no memory"** — The `context-update` command writes codebase health directly into Claude's memory system. Every session starts informed.
+
+### How It Fits Together
+
+```
+git history ──→ SQLite cache ──→ Analytics ──→ Claude Memory
+  (commits,       (indexed,        (hotspots,     (auto-loaded
+   diffs,          searchable)      trends,        every session)
+   branches)                        decisions)
+```
+
+Three layers of intelligence, each useful independently:
+1. **Raw data** — every commit, file change, branch, and tag indexed and searchable
+2. **Derived analytics** — churn hotspots, file coupling, decision points, author expertise, quality metrics
+3. **LLM enrichments** — AI-analyzed intent, reasoning, and impact per commit (optional)
+
+The `context-update` command bridges git-skill to Claude's memory system, writing a concise health summary that `findRelevantMemories` loads at session start.
+
+---
 
 ## Install
 
@@ -181,6 +213,12 @@ Claude can read the config, run the commands, and interpret the results. When in
 - [`@m2015agg/supabase-skill`](https://github.com/m2015agg/supabase-skill) — Database schema intelligence
 - [`@m2015agg/context7-skill`](https://github.com/m2015agg/context7-skill) — Library docs cache
 - `@m2015agg/git-skill` — Git history intelligence
+
+## Detailed Documentation
+
+- [Design Spec](docs/specs/2026-03-31-git-skill-design.md) — Full architecture, schema, algorithms, and test strategy
+- [GeorgeWorks: Memory Integration](docs/specs/context-injection.md) — How context-update writes to Claude's memory system, internal architecture of `findRelevantMemories`, consolidation phases, and thresholds
+- [Opus Verification Layer](docs/specs/opus-verification-layer.md) — Concept for pre-commit AI verification that catches reverted re-introductions and thrashing patterns
 
 ## License
 
