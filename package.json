@@ -1,0 +1,35 @@
+{
+  "name": "@m2015agg/git-skill",
+  "version": "0.1.0",
+  "description": "Git history intelligence for LLMs — institutional memory over codebase evolution",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "git-skill": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "link": "npm run build && npm link",
+    "prepublishOnly": "npm run build",
+    "postinstall": "node -e \"process.stdout.write('\\n  git-skill installed! Run: git-skill install\\n\\n')\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "commander": "^13.1.0",
+    "simple-statistics": "^7.8.7"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.5.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "files": ["dist", "README.md"],
+  "keywords": ["git", "history", "ai", "llm", "cli", "intelligence"],
+  "author": "m2015agg",
+  "license": "MIT"
+}
