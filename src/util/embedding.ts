@@ -37,3 +37,13 @@ export function cosineSimilarity(a: number[], b: number[]): number {
   return dot / (Math.sqrt(normA) * Math.sqrt(normB) || 1);
 }
 
+export function vectorToBuffer(vector: number[]): Buffer {
+  const arr = new Float32Array(vector);
+  return Buffer.from(arr.buffer);
+}
+
+export function bufferToVector(buf: Buffer): number[] {
+  const arr = new Float32Array(new Uint8Array(buf).buffer);
+  return Array.from(arr);
+}
+

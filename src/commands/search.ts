@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { join } from "path";
 import { openDb, hasDb } from "../util/db.js";
-import { searchBM25, SearchResult } from "../util/search-hybrid.js";
+import { searchBM25, SearchResult, hybridSearch, hasEmbeddings } from "../util/search-hybrid.js";
 
 function write(msg: string): void {
   process.stdout.write(msg);
@@ -9,13 +9,14 @@ function write(msg: string): void {
 
 export function searchCommand(): Command {
   return new Command("search")
-    .description("Search git history using BM25 full-text search")
+    .description("Search git history (hybrid BM25 + semantic when embeddings exist)")
     .argument("<query>", "Search query")
     .option("--limit <n>", "Maximum results", "20")
     .option("--json", "Output as JSON")
     .option("--since <date>", "Only show results from commits after this date")
     .option("--until <date>", "Only show results from commits before this date")
-    .action((query: string, opts: { limit: string; json?: boolean; since?: string; until?: string }) => {
+    .option("--bm25", "Force BM25-only search (skip semantic)")
+    .action(async (query: string, opts: { limit: string; json?: boolean; since?: string; until?: string; bm25?: boolean }) => {
       const cwd = process.cwd();
       const historyDir = join(cwd, ".git-history");
 
@@ -27,7 +28,12 @@ export function searchCommand(): Command {
       const db = openDb(historyDir);
       try {
         const limit = parseInt(opts.limit, 10) || 20;
-        let results = searchBM25(db, query, limit);
+        let results: SearchResult[];
+        if (opts.bm25 || !hasEmbeddings(db)) {
+          results = searchBM25(db, query, limit);
+        } else {
+          results = await hybridSearch(db, query, limit);
+        }
 
         // Filter by date if --since or --until provided
         if ((opts.since || opts.until) && results.length > 0) {
@@ -99,6 +105,17 @@ export function searchCommand(): Command {
             const shortHash = r.hash.slice(0, 7);
             const date = meta ? meta.timestamp.slice(0, 10) : "";
             write(`  ${shortHash}  ${r.path}  [${r.detail}]  (${date})\n`);
+          }
+        }
+
+        const enrichResults = results.filter(r => r.type === "enrichment");
+        if (enrichResults.length > 0) {
+          write("\nEnrichments:\n");
+          for (const r of enrichResults) {
+            const shortHash = r.hash.slice(0, 7);
+            const meta = commitMeta.get(r.hash);
+            const date = meta ? meta.timestamp.slice(0, 10) : "";
+            write(`  ${shortHash}  ${r.message.slice(0, 80)}  (${date})\n`);
           }
         }
 

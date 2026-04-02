@@ -174,6 +174,17 @@ function initSchema(db: Database.Database): void {
     );
   `);
 
+  // Unique index for embeddings dedup — try-catch for existing DBs with duplicates
+  try {
+    db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_embeddings_hash_type ON embeddings(commit_hash, content_type)");
+  } catch {
+    // Existing DB may have duplicates — dedup first, then retry
+    try {
+      db.exec("DELETE FROM embeddings WHERE id NOT IN (SELECT MIN(id) FROM embeddings GROUP BY commit_hash, content_type)");
+      db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_embeddings_hash_type ON embeddings(commit_hash, content_type)");
+    } catch { /* ignore — index creation is best-effort */ }
+  }
+
   db.prepare("INSERT OR REPLACE INTO schema_meta (key, value) VALUES ('schema_version', ?)").run(String(SCHEMA_VERSION));
 }
 

@@ -35,4 +35,9 @@ describe("search command", () => {
     const parsed = JSON.parse(output);
     expect(Array.isArray(parsed)).toBe(true);
   });
+
+  it("supports --bm25 flag", () => {
+    const output = execSync(`node ${cliPath} search "auth" --bm25`, { cwd: repoDir, encoding: "utf-8" });
+    expect(output.length).toBeGreaterThan(0);
+  });
 });

@@ -4,6 +4,7 @@ import { execFileSync } from "child_process";
 import { openDb, hasDb } from "../util/db.js";
 import { readConfig } from "../util/config.js";
 import { loadDotEnv, resolveEnvVar } from "../util/env.js";
+import { generateEmbedding, vectorToBuffer } from "../util/embedding.js";
 
 interface CommitRow {
   hash: string;
@@ -277,6 +278,18 @@ export function enrichCommand(): Command {
               sessionContext: result.session_context ?? null,
             });
             successCount++;
+
+            // Best-effort: embed the enrichment if embedding is configured
+            try {
+              const enrichText = [intentParts.join(" | "), result.reasoning].filter(Boolean).join(" ");
+              const embResult = await generateEmbedding(enrichText);
+              if (embResult) {
+                db.prepare(`
+                  INSERT OR REPLACE INTO embeddings (commit_hash, content_type, vector, model, created_at)
+                  VALUES (?, 'enrichment', ?, ?, ?)
+                `).run(commit.hash, vectorToBuffer(embResult.vector), embResult.model, new Date().toISOString());
+              }
+            } catch { /* embedding is best-effort */ }
           } else {
             failCount++;
           }

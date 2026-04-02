@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { join } from "path";
 import { openDb, hasDb } from "../util/db.js";
 import { readConfig } from "../util/config.js";
-import { generateEmbedding } from "../util/embedding.js";
+import { generateEmbedding, vectorToBuffer } from "../util/embedding.js";
 
 export function embedCommand(): Command {
   return new Command("embed")
@@ -56,9 +56,7 @@ export function embedCommand(): Command {
         for (const commit of commits) {
           const result = await generateEmbedding(commit.message);
           if (result) {
-            const buf = Buffer.alloc(result.vector.length * 4);
-            const arr = new Float32Array(result.vector);
-            Buffer.from(arr.buffer).copy(buf);
+            const buf = vectorToBuffer(result.vector);
 
             insertEmbed.run({
               commitHash: commit.hash,
@@ -74,6 +72,46 @@ export function embedCommand(): Command {
         }
 
         process.stdout.write(`Done. Embedded: ${successCount}, Failed: ${failCount}\n`);
+
+        // Second pass: embed enrichments
+        let enrichQuery = `SELECT e.commit_hash, e.intent, e.reasoning
+  FROM enrichments e
+  LEFT JOIN embeddings emb ON e.commit_hash = emb.commit_hash AND emb.content_type = 'enrichment'
+  WHERE emb.commit_hash IS NULL`;
+        if (opts.force) {
+          enrichQuery = "SELECT commit_hash, intent, reasoning FROM enrichments";
+        }
+
+        const enrichments = (limit > 0
+          ? db.prepare(enrichQuery + " LIMIT ?").all(limit)
+          : db.prepare(enrichQuery).all()) as Array<{ commit_hash: string; intent: string; reasoning: string }>;
+
+        if (enrichments.length > 0) {
+          process.stdout.write(`Embedding ${enrichments.length} enrichments...\n`);
+          let enrichSuccess = 0;
+          let enrichFail = 0;
+
+          for (const enrichment of enrichments) {
+            const text = [enrichment.intent, enrichment.reasoning].filter(Boolean).join(" ");
+            const result = await generateEmbedding(text);
+            if (result) {
+              const buf = vectorToBuffer(result.vector);
+              insertEmbed.run({
+                commitHash: enrichment.commit_hash,
+                contentType: "enrichment",
+                vector: buf,
+                model: result.model,
+                createdAt: new Date().toISOString(),
+              });
+              enrichSuccess++;
+            } else {
+              enrichFail++;
+            }
+          }
+          process.stdout.write(`Done. Enrichment embeddings: ${enrichSuccess}, Failed: ${enrichFail}\n`);
+        } else {
+          process.stdout.write("No enrichments to embed.\n");
+        }
       } finally {
         db.close();
       }
