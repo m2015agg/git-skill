@@ -25,7 +25,7 @@ function setCrontab(content: string): void {
 }
 
 function buildCronLine(cwd: string): string {
-  return `0 3 * * * cd '${cwd.replace(/'/g, "'\\''")}' && git-skill snapshot ${CRON_MARKER}`;
+  return `0 3 * * * cd '${cwd.replace(/'/g, "'\\''")}' && git fetch --all --quiet 2>/dev/null; git-skill snapshot ${CRON_MARKER}`;
 }
 
 export function cronCommand(): Command {
