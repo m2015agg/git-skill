@@ -67,7 +67,9 @@ export async function searchVector(
   }));
 
   scored.sort((a, b) => b.similarity - a.similarity);
-  const top = scored.slice(0, limit);
+  // Filter out low-similarity results (below 0.3 is noise)
+  const filtered = scored.filter(s => s.similarity > 0.3);
+  const top = filtered.slice(0, limit);
 
   const results: SearchResult[] = [];
   for (const item of top) {

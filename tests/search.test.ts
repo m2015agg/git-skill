@@ -19,8 +19,8 @@ describe("search command", () => {
     expect(output.toLowerCase()).toContain("auth");
   });
 
-  it("returns no results for nonexistent query", () => {
-    const output = execSync(`node ${cliPath} search "xyznonexistent123"`, { cwd: repoDir, encoding: "utf-8" });
+  it("returns no results for nonexistent query (BM25)", () => {
+    const output = execSync(`node ${cliPath} search "xyznonexistent123" --bm25`, { cwd: repoDir, encoding: "utf-8" });
     expect(output).toContain("No results");
   });
 

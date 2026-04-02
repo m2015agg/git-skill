@@ -5,6 +5,9 @@ import { getLog, getDiffTree, getBranches, getTags } from "../util/git.js";
 import { runAllAnalytics } from "../util/analytics.js";
 import { computeBuiltinMetrics } from "../util/metrics.js";
 import { runContextUpdate } from "./context-update.js";
+import { readConfig } from "../util/config.js";
+import { generateEmbedding, vectorToBuffer } from "../util/embedding.js";
+import { loadDotEnv, resolveEnvVar } from "../util/env.js";
 
 interface SnapshotOptions {
   force?: boolean;
@@ -192,10 +195,62 @@ export async function snapshotCommand(opts: SnapshotOptions = {}): Promise<void>
     new Date().toISOString()
   );
 
+  // Phase 7: Auto-embed new commits + enrichments (if embedding configured)
+  const config = readConfig();
+  if (config?.embedding?.enabled && config.embedding.url) {
+    process.stdout.write("Phase 7: Embedding new commits + enrichments...\n");
+    try {
+      loadDotEnv();
+
+      // Embed unenriched commit messages
+      const unembeddedCommits = db.prepare(`
+        SELECT c.hash, c.message FROM commits c
+        LEFT JOIN embeddings e ON c.hash = e.commit_hash AND e.content_type = 'message'
+        WHERE e.commit_hash IS NULL
+      `).all() as { hash: string; message: string }[];
+
+      let msgOk = 0;
+      for (const c of unembeddedCommits) {
+        const result = await generateEmbedding(c.message);
+        if (result) {
+          db.prepare(
+            "INSERT OR REPLACE INTO embeddings (commit_hash, content_type, vector, model, created_at) VALUES (?, 'message', ?, ?, ?)"
+          ).run(c.hash, vectorToBuffer(result.vector), result.model, new Date().toISOString());
+          msgOk++;
+        }
+      }
+
+      // Embed unenriched enrichments
+      const unembeddedEnrich = db.prepare(`
+        SELECT e.commit_hash, e.intent, e.reasoning FROM enrichments e
+        LEFT JOIN embeddings emb ON e.commit_hash = emb.commit_hash AND emb.content_type = 'enrichment'
+        WHERE emb.commit_hash IS NULL
+      `).all() as { commit_hash: string; intent: string; reasoning: string }[];
+
+      let enrOk = 0;
+      for (const e of unembeddedEnrich) {
+        const text = [e.intent, e.reasoning].filter(Boolean).join(" ");
+        const result = await generateEmbedding(text);
+        if (result) {
+          db.prepare(
+            "INSERT OR REPLACE INTO embeddings (commit_hash, content_type, vector, model, created_at) VALUES (?, 'enrichment', ?, ?, ?)"
+          ).run(e.commit_hash, vectorToBuffer(result.vector), result.model, new Date().toISOString());
+          enrOk++;
+        }
+      }
+
+      process.stdout.write(`  Embedded ${msgOk} messages, ${enrOk} enrichments\n`);
+    } catch (err: any) {
+      process.stdout.write(`  Warning: Embedding failed (${err.message?.slice(0, 80) ?? "unknown"})\n`);
+    }
+  } else {
+    process.stdout.write("Phase 7: Skipping embeddings (not configured)\n");
+  }
+
   db.close();
 
-  // Phase 7: Update Claude memory context
-  process.stdout.write("Phase 7: Updating Claude memory context...\n");
+  // Phase 8: Update Claude memory context
+  process.stdout.write("Phase 8: Updating Claude memory context...\n");
   try {
     runContextUpdate(cwd);
     process.stdout.write("  Memory context updated\n");

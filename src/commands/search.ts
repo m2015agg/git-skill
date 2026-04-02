@@ -35,6 +35,9 @@ export function searchCommand(): Command {
           results = await hybridSearch(db, query, limit);
         }
 
+        // Filter out empty results (FTS5 prefix matching can return phantom hits)
+        results = results.filter(r => r.message || r.path);
+
         // Filter by date if --since or --until provided
         if ((opts.since || opts.until) && results.length > 0) {
           const hashes = [...new Set(results.map(r => r.hash))];
