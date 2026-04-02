@@ -102,9 +102,15 @@ Implement feature according to the plan file.
 5. **For Each Task**:
    - Make changes following existing patterns in the codebase
    - Run tests after each change
+   - Before committing, verify against history:
+     \`\`\`bash
+     git add .
+     git-skill verify
+     \`\`\`
+     If BLOCK: stop and discuss. If WARN: note it and proceed carefully.
    - Push commits frequently (backup points):
      \`\`\`bash
-     git add . && git commit -m "wip: [task]" && git push
+     git commit -m "wip: [task]" && git push
      \`\`\`
 
 6. **STOP**: Notify completion — DO NOT finalize or merge
@@ -207,10 +213,10 @@ Review the current branch changes before merging.
    - **WARN**: Note the warning. Check if the current approach addresses the previous failure. Proceed with caution.
    - **PASS**: No concerns from history.
 
-3. **Check codebase health**:
+3. **Review scope and codebase health**:
    \`\`\`bash
-   git-skill doctor
-   git-skill hotspots --limit 5
+   git-skill diff-summary HEAD~5..HEAD    # summarize what changed in this branch
+   git-skill hotspots --limit 5           # flag churning files
    \`\`\`
    Flag any files being modified that appear in the hotspots list.
 
