@@ -281,3 +281,156 @@ Review the current branch changes before merging.
 - Always run tests after fixes
 `;
 
+export const TRACE_COMMAND = `---
+description: "Debug unexpected behavior by tracing broken assumptions across git history"
+allowed-tools: Read, Bash(git-skill:*)
+---
+
+# Historical Context Debugging
+
+Trace broken assumptions in code using git-skill history. Use when behavior is wrong but code looks correct in isolation.
+
+**PROCESS:**
+
+1. **Name the symptom precisely** (not "it's slow" — say what specifically is wrong)
+2. **Follow the investigation workflow**:
+   - \`git-skill search "<feature keyword>"\` — find related commits
+   - \`git-skill why <hash>\` — understand original intent and assumptions
+   - \`git-skill timeline <file>\` — see all changes chronologically
+   - \`git-skill search "<later feature>"\` — find changes that might conflict
+   - \`git-skill why <later_hash>\` — did the later change consider the original?
+3. **Identify the fault type**: Missing Guard, Parallel Evolution, or Stale Side Effect
+4. **Fix** and \`git-skill verify\` before committing
+
+**EXAMPLE:**
+\`\`\`
+/trace Follow-up messages are triggering fresh RAG even when router says conversational
+\`\`\`
+`;
+
+export const HISTORICAL_CONTEXT_SKILL = `---
+name: historical-context-debugging
+description: Use when debugging unexpected behavior where the code looks correct in isolation — traces broken assumptions across commits using git-skill to find where later changes invalidated earlier logic
+---
+
+# Historical Context Debugging
+
+## Overview
+
+Bugs often aren't in the code you're looking at — they're in the **gap between two changes made months apart**. Feature A was built with assumption X. Feature B was added later and silently violated assumption X. Both look correct in isolation. The bug is invisible without the git history.
+
+This skill uses \`git-skill\` to reconstruct the causal chain: why was the original code written, what assumptions did it make, and which later change broke those assumptions?
+
+## When to Use
+
+- Code looks correct but behaves wrong
+- A feature "used to work" but stopped
+- You find a guard/flag for one case but not a similar case
+- Two subsystems that should be connected aren't
+- Cache/config is stale despite code being updated
+- You're about to change code but aren't sure why it was written that way
+
+## When NOT to Use
+
+- Bug is clearly a typo or syntax error
+- Code was written in the current session
+- The issue is in a dependency, not your code
+
+## Quick Reference
+
+| Step | Command | What You Learn |
+|------|---------|----------------|
+| Find commits | \`git-skill search "feature keyword"\` | Who touched this area and when |
+| Understand intent | \`git-skill why <hash>\` | Why the original code was written, what assumptions it made |
+| See evolution | \`git-skill timeline <file>\` | All changes to a file in chronological order |
+| Find related | \`git-skill search "related feature"\` | Later changes that might affect the same logic |
+| Check for reverts | \`git-skill decisions\` | Was this approach tried and rolled back before? |
+| Validate fix | \`git-skill verify\` | Does your staged fix repeat a known mistake? |
+
+## The Three Fault Types
+
+### 1. Missing Guard (most common)
+
+Feature A adds a guard for case X. Feature B adds a new case Y that needs the same guard but nobody adds it.
+
+**Signal:** You find a flag/guard for one field but not a similar field.
+
+**Investigation:**
+\`\`\`
+git-skill search "original_guard"     → find when guard was added
+git-skill why <hash>                  → understand why it was needed
+git-skill search "new_feature"        → find when new feature was added
+git-skill why <hash>                  → did that commit mention the guard? No.
+\`\`\`
+
+### 2. Parallel Evolution
+
+Two systems are built independently that should share logic. They diverge because neither knows about the other.
+
+**Signal:** Two different implementations of the same concept, or a new system never wired into existing code paths.
+
+**Investigation:**
+\`\`\`
+git-skill search "system A"           → find when A was built
+git-skill search "system B"           → find when B was built
+git-skill timeline <shared_file>      → was B ever connected to A? No.
+\`\`\`
+
+### 3. Stale Side Effect
+
+Code change is applied but a side effect (cache, config, external state) isn't updated.
+
+**Signal:** DB/code shows correct value but runtime behavior is wrong.
+
+**Investigation:**
+\`\`\`
+git-skill search "the change"         → find the update commit
+git-skill why <hash>                  → was cache/config invalidation mentioned?
+# Then check: is the runtime state matching the code state?
+\`\`\`
+
+## Investigation Workflow
+
+### Step 1: Name the symptom precisely
+Bad: "Chat is slow"
+Good: "Follow-up messages trigger fresh RAG even when router says conversational"
+
+### Step 2: Find the feature that should prevent this
+\`\`\`bash
+git-skill search "relevant feature"
+\`\`\`
+
+### Step 3: Understand the original intent
+\`\`\`bash
+git-skill why <original_commit>
+\`\`\`
+Read the enrichment carefully. What **assumptions** did the author make? Write them down.
+
+### Step 4: Find what changed between then and now
+\`\`\`bash
+git-skill timeline <affected_file> --since <original_date>
+git-skill search "feature that might conflict"
+\`\`\`
+
+### Step 5: Check each later change against the assumptions
+\`\`\`bash
+git-skill why <later_commit>
+\`\`\`
+Ask: "Did this change consider assumption X?" If not, that's your likely fault.
+
+### Step 6: Fix and verify
+\`\`\`bash
+git add <files>
+git-skill verify
+\`\`\`
+
+## Common Mistakes
+
+| Mistake | Better |
+|---------|--------|
+| Grep the code and guess | Use \`git-skill why\` to understand intent first |
+| Fix the symptom without tracing the cause | Trace the full causal chain |
+| Assume the original code is wrong | Often a later change broke its assumption |
+| Skip checking for reverts | \`git-skill decisions\` — someone may have tried your fix and rolled it back |
+| Fix one instance of a pattern | Search for ALL instances of the same pattern |
+`;

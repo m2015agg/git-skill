@@ -6,7 +6,7 @@ import { installHook } from "../util/hooks.js";
 import { isGitRepo } from "../util/git.js";
 import { upsertSection } from "../util/claude-md.js";
 import { getSkillDoc } from "./docs.js";
-import { WALKTHROUGH, REVIEW_COMMAND, PLAN_COMMAND, IMPLEMENT_COMMAND, FINALIZE_COMMAND } from "../templates/walkthrough.js";
+import { WALKTHROUGH, REVIEW_COMMAND, PLAN_COMMAND, IMPLEMENT_COMMAND, FINALIZE_COMMAND, TRACE_COMMAND, HISTORICAL_CONTEXT_SKILL } from "../templates/walkthrough.js";
 import { runContextUpdate } from "./context-update.js";
 
 function write(msg: string): void { process.stdout.write(msg); }
@@ -103,6 +103,27 @@ export function initCommand(): Command {
         write("   /finalize — finalize features with verification (NEW)\n");
       } else {
         write("   /finalize — already exists (not overwritten)\n");
+      }
+
+      // Install trace command
+      const tracePath = join(walkthroughDir, "trace.md");
+      if (!existsSync(tracePath)) {
+        writeFileSync(tracePath, TRACE_COMMAND);
+        write("   /trace — debug via git history (Missing Guard, Parallel Evolution, Stale Side Effect) (NEW)\n");
+      } else {
+        write("   /trace — already exists (not overwritten)\n");
+      }
+
+      // Install historical-context-debugging skill
+      write("   Installing skills...\n");
+      const skillDir = join(cwd, ".claude", "skills", "historical-context-debugging");
+      const skillPath = join(skillDir, "SKILL.md");
+      if (!existsSync(skillPath)) {
+        mkdirSync(skillDir, { recursive: true });
+        writeFileSync(skillPath, HISTORICAL_CONTEXT_SKILL);
+        write("   historical-context-debugging — auto-triggered when code looks correct but behaves wrong (NEW)\n");
+      } else {
+        write("   historical-context-debugging — already exists (not overwritten)\n");
       }
 
       // 6. Run snapshot
