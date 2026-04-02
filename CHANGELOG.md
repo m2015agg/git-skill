@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.4.6 (2026-04-02)
+
+### Interactive Install Wizard
+- `git-skill install` now walks through embedding and enrichment setup interactively
+- Choose provider (Ollama/OpenAI/Anthropic/custom), configure URL and model
+- Tests embedding connection before saving
+- Prompts for API key and saves to `~/.env` (mode 0600) — never stored in config
+- `--ci` flag for non-interactive mode (uses defaults)
+
+### add-key Command
+- `git-skill add-key <key>` — quick way to add or update your API key
+- Auto-detects provider from key prefix: `sk-ant-` = Anthropic, `sk-` = OpenAI
+- Saves to `~/.env`, auto-enables enrichment in config
+- OpenAI keys also auto-enable embeddings
+
+### Daily Digest in Context Update
+- `context-update` now includes a "Recent Activity" section showing commits, authors, most changed files, reverts, and fixes since last snapshot
+- Nightly cron shows last 24h of activity
+- `--days <n>` flag for custom window
+
+### 30-Day History on Init
+- `git-skill init` writes 30 days of commit history to Claude's memory
+- First Claude session after init starts with full awareness of recent codebase evolution
+
+### /review Slash Command
+- `git-skill init` installs a `/review` command at `.claude/commands/review.md`
+- Integrates `git-skill verify` into code review workflow
+- BLOCK stops the review, WARN proceeds with caution, PASS continues
+- Won't overwrite existing `review.md`
+
 ## v0.4.4 (2026-04-02)
 
 ### /review Slash Command

@@ -45,9 +45,20 @@ If `git-skill` is not found after install, run `hash -r` to refresh your shell's
 ## Quick Start
 
 ```bash
+# First time only — interactive wizard configures embeddings + API key
+git-skill install
+
+# Then in each repo
 cd your-project
-git-skill init          # Install hook, index history, set up CLAUDE.md
+git-skill init          # Hook, snapshot, /review command, 30-day context
 git-skill doctor        # Verify setup
+```
+
+Or skip the wizard and add your key directly:
+
+```bash
+git-skill add-key sk-ant-your-key-here   # auto-detects Anthropic
+git-skill add-key sk-your-key-here       # auto-detects OpenAI
 ```
 
 ## Embeddings (Optional)
@@ -166,8 +177,9 @@ git-skill why <hash>          # View enrichment for a commit
 
 | Command | Description |
 |---------|-------------|
-| `git-skill install` | Global setup (embedding config, CLAUDE.md) |
-| `git-skill init` | Per-project setup (hook, snapshot, permissions) |
+| `git-skill install` | Interactive setup wizard (embeddings, enrichment, API key) |
+| `git-skill init` | Per-project setup (hook, snapshot, /review command, 30-day context) |
+| `git-skill add-key <key>` | Add or update API key (auto-detects Anthropic/OpenAI) |
 | `git-skill approve` | Pre-approve read commands in Claude Code |
 | `git-skill docs` | Output CLAUDE.md snippet |
 | `git-skill cron` | Nightly fetch + snapshot + embed automation |
