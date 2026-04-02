@@ -141,15 +141,9 @@ Implement feature according to the plan file.
 5. **For Each Task**:
    - Make changes following existing patterns in the codebase
    - Run tests after each change
-   - Before committing, verify against history:
+   - Commit and push frequently (backup points):
      \`\`\`bash
-     git add .
-     git-skill verify
-     \`\`\`
-     If BLOCK: stop and discuss. If WARN: note it and proceed carefully.
-   - Push commits frequently (backup points):
-     \`\`\`bash
-     git commit -m "wip: [task]" && git push
+     git add . && git commit -m "wip: [task]" && git push
      \`\`\`
 
 6. **STOP**: Notify completion — DO NOT finalize or merge
@@ -159,6 +153,7 @@ Implement feature according to the plan file.
 - Push commits often (rollback points)
 - Keep user updated every 3-4 tasks
 - DO NOT finalize — just implement
+- The /review phase will soft-reset the last commit to run verify on staged changes
 `;
 
 export const FINALIZE_COMMAND = `---
@@ -231,11 +226,17 @@ description: "Code review with git history verification — checks for repeated 
 
 # Code Review with History Verification
 
-Review the current branch changes before merging.
+Review branch changes before merging. Soft-resets last commit to run verify on staged changes.
 
 **PROCESS:**
 
-1. **Run tests**:
+1. **Soft-reset to get staged changes for verify**:
+   \`\`\`bash
+   git reset --soft HEAD~1
+   \`\`\`
+   This unstages the last commit but keeps all changes staged — exactly what \`git-skill verify\` needs.
+
+2. **Run tests**:
    \`\`\`bash
    # Run the project's test suite (adjust command for your project)
    npm test        # Node.js
@@ -243,7 +244,7 @@ Review the current branch changes before merging.
    # cargo test     # Rust
    \`\`\`
 
-2. **Git History Verification** (prevent re-trying failed approaches):
+3. **Git History Verification** (prevent re-trying failed approaches):
    \`\`\`bash
    git-skill verify
    \`\`\`
@@ -252,33 +253,42 @@ Review the current branch changes before merging.
    - **WARN**: Note the warning. Check if the current approach addresses the previous failure. Proceed with caution.
    - **PASS**: No concerns from history.
 
-3. **Review scope and codebase health**:
+4. **Review scope and codebase health**:
    \`\`\`bash
-   git-skill diff-summary HEAD~5..HEAD    # summarize what changed in this branch
+   git-skill diff-summary HEAD~5..HEAD    # summarize recent branch changes
    git-skill hotspots --limit 5           # flag churning files
    \`\`\`
-   Flag any files being modified that appear in the hotspots list.
+   Flag any modified files that appear in the hotspots list.
 
-4. **Review against criteria**:
+5. **Review against criteria**:
    - **Critical** (must fix): Security vulnerabilities, data loss risks, breaking changes, tests failing
    - **Major** (should fix): Missing error handling, pattern violations, missing tests
    - **Minor** (optional): Style, docs, optimization
 
-5. **Auto-fix critical/major issues**:
+6. **Auto-fix critical/major issues**:
    - Fix issues following established patterns
    - Run tests after each fix
-   - Commit fixes separately
+   - Re-stage fixed files: \`git add <fixed-files>\`
 
-6. **Report findings**:
+7. **Re-commit after review passes**:
+   \`\`\`bash
+   git commit -m "feat: [description]"
+   git push
+   \`\`\`
+
+8. **Report findings**:
    - List issues found and fixed
    - List any WARN/BLOCK from git-skill verify
    - Provide verification commands
-   - Recommend proceeding or returning to implementation
+   - Recommend proceeding to /finalize or returning to /implement
 
 **IMPORTANT:**
+- Step 1 soft-resets the WIP commit so verify can inspect staged changes
+- \`git-skill verify\` only works on STAGED changes — this is why we reset first
 - \`git-skill verify\` is authoritative — if it says something was reverted before, take it seriously
 - Auto-fix critical/major issues, don't just report them
 - Always run tests after fixes
+- Re-commit with a clean message after review passes
 `;
 
 export const TRACE_COMMAND = `---
