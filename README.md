@@ -97,7 +97,7 @@ Edit `~/.config/git-skill/config.json`:
   "enrichment": {
     "enabled": true,
     "url": "https://api.anthropic.com/v1/messages",
-    "model": "claude-sonnet-4-5-20250514",
+    "model": "claude-sonnet-4-6",
     "apiKey": "${GIT_SKILL_LLM_KEY}",
     "batchSize": 10,
     "maxTokensPerCommit": 5000
@@ -140,7 +140,7 @@ git-skill enrich v1.0..v1.1   # Enrich a specific range
 git-skill why <hash>          # View enrichment for a commit
 ```
 
-**Supported providers:** Any OpenAI-compatible chat endpoint — Anthropic, OpenAI, Ollama, LMStudio, Together, etc. Recommended model: `claude-sonnet-4-5-20250514` or `gpt-4o`.
+**Supported providers:** Any OpenAI-compatible chat endpoint — Anthropic, OpenAI, Ollama, LMStudio, Together, etc. Recommended model: `claude-sonnet-4-6` or `gpt-4o`.
 
 ## Commands
 

@@ -209,7 +209,7 @@ export function enrichCommand(): Command {
             "Enrichment not configured. Set enrichment.enabled and enrichment.url in ~/.config/git-skill/config.json\n"
           );
           process.stdout.write(
-            `Recommended models: claude-sonnet-4-5-20250514, gpt-4o, gpt-4o-mini\n`
+            `Recommended models: claude-sonnet-4-6, gpt-4o, gpt-4o-mini\n`
           );
           process.stdout.write(
             `${commits.length} commit${commits.length !== 1 ? "s" : ""} would be enriched.\n`

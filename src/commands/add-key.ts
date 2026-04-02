@@ -57,7 +57,7 @@ export function addKeyCommand(): Command {
 
           if (provider === "anthropic") {
             config.enrichment.url = "https://api.anthropic.com/v1/messages";
-            config.enrichment.model = "claude-sonnet-4-5-20250514";
+            config.enrichment.model = "claude-sonnet-4-6";
           } else if (provider === "openai") {
             config.enrichment.url = "https://api.openai.com/v1/chat/completions";
             config.enrichment.model = "gpt-4o";

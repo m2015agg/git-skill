@@ -118,7 +118,7 @@
 ### LLM Enrichment Improvements
 - Rich prompt with actual diff, file list, surrounding commits (3000 char diff truncation)
 - `max_tokens` increased to 5000
-- Default model: `claude-sonnet-4-5-20250514`
+- Default model: `claude-sonnet-4-6`
 - Native Anthropic API support (`x-api-key` header, `/v1/messages` endpoint)
 - Progress reporting every 10 commits
 - `.env` file auto-loading for API keys

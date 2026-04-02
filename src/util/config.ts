@@ -27,7 +27,7 @@ const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 export function getDefaultConfig(): GitSkillConfig {
   return {
     embedding: { enabled: false, provider: "openai", model: "text-embedding-3-small", url: "", apiKey: "", dimensions: 1536 },
-    enrichment: { enabled: false, url: "https://api.anthropic.com/v1/messages", model: "claude-sonnet-4-5-20250514", apiKey: "${GIT_SKILL_LLM_KEY}", batchSize: 10, maxTokensPerCommit: 5000 },
+    enrichment: { enabled: false, url: "https://api.anthropic.com/v1/messages", model: "claude-sonnet-4-6", apiKey: "${GIT_SKILL_LLM_KEY}", batchSize: 10, maxTokensPerCommit: 5000 },
   };
 }
 

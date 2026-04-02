@@ -130,7 +130,7 @@ export function installCommand(): Command {
         const wantEnrich = await ask("   Enable enrichment? [y/N] ");
         if (wantEnrich.toLowerCase() === "y") {
           write("\n   Providers:\n");
-          write("     1) Anthropic (recommended)  — claude-sonnet-4-5\n");
+          write("     1) Anthropic (recommended)  — claude-sonnet-4-6\n");
           write("     2) OpenAI                   — gpt-4o\n\n");
 
           const enrichProvider = await ask("   Choose [1/2]: ");
@@ -140,7 +140,7 @@ export function installCommand(): Command {
             config.enrichment.model = "gpt-4o";
           } else {
             config.enrichment.url = "https://api.anthropic.com/v1/messages";
-            config.enrichment.model = "claude-sonnet-4-5-20250514";
+            config.enrichment.model = "claude-sonnet-4-6";
           }
 
           config.enrichment.apiKey = "${GIT_SKILL_LLM_KEY}";
