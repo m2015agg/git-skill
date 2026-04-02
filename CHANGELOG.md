@@ -1,5 +1,34 @@
 # Changelog
 
+## v0.4.4 (2026-04-02)
+
+### /review Slash Command
+- `git-skill init` now installs a `/review` slash command at `.claude/commands/review.md`
+- Integrates `git-skill verify` into the code review workflow — checks staged changes against history before merge
+- BLOCK stops the review (reverted code detected), WARN proceeds with caution, PASS continues
+- Checks modified files against churn hotspots
+- Generic template works for any project — customize test commands for your stack
+- Won't overwrite existing `review.md` (respects user customizations)
+
+### Nightly Auto-Embed
+- Snapshot Phase 7 auto-embeds new commit messages and enrichments when embedding provider is configured
+- No manual `git-skill embed` needed — nightly cron handles it automatically
+
+### Team Fetch
+- Cron job runs `git fetch --all` before nightly snapshot
+- Team members' commits are indexed automatically without manual pulls
+
+### Hybrid Vector Search
+- Search uses BM25 + cosine similarity with Reciprocal Rank Fusion (RRF) when embeddings exist
+- `--bm25` flag to force keyword-only search
+- Cosine similarity threshold (0.3) filters noise from vector results
+- Enrichment text (intent + reasoning) searchable via semantic search
+
+### Enrichment Embedding
+- `git-skill embed` now also embeds enrichment text (`content_type='enrichment'`)
+- `git-skill enrich` generates embeddings inline after each enrichment
+- Unique index on `embeddings(commit_hash, content_type)` prevents duplicates
+
 ## v0.4.2 (2026-04-02)
 
 ### Team Collaboration
