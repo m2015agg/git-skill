@@ -1,6 +1,6 @@
 import { Command } from "commander";
 import { join } from "path";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from "fs";
 import { homedir } from "os";
 import { openDb, hasDb } from "../util/db.js";
 
@@ -30,6 +30,8 @@ interface HealthSummary {
   totalBranches: number;
   totalTags: number;
   hotspots: { file_path: string; commits: number; insertions: number; deletions: number }[];
+  recentHotspots: { file_path: string; commits: number }[];
+  avgFilesPerCommit: number;
   decisions: { hash: string; type: string; message: string; timestamp: string }[];
   metrics: { name: string; latest: number }[];
   alerts: string[];
@@ -45,7 +47,7 @@ function buildSummary(historyDir: string, digestDays = 1): HealthSummary {
     const totalBranches = (db.prepare("SELECT COUNT(*) as c FROM branches").get() as any).c;
     const totalTags = (db.prepare("SELECT COUNT(*) as c FROM tags").get() as any).c;
 
-    // Top 5 hotspots by total commits
+    // Top 5 hotspots all-time
     const hotspots = db.prepare(`
       SELECT file_path, SUM(commits) as commits, SUM(insertions) as insertions, SUM(deletions) as deletions
       FROM churn_hotspots
@@ -53,6 +55,27 @@ function buildSummary(historyDir: string, digestDays = 1): HealthSummary {
       ORDER BY commits DESC
       LIMIT 5
     `).all() as { file_path: string; commits: number; insertions: number; deletions: number }[];
+
+    // Top 5 hotspots last 30 days
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+    const recentHotspots = db.prepare(`
+      SELECT cf.file_path, COUNT(DISTINCT cf.commit_hash) as commits
+      FROM commit_files cf
+      JOIN commits c ON c.hash = cf.commit_hash
+      WHERE c.timestamp > ?
+      GROUP BY cf.file_path
+      ORDER BY commits DESC
+      LIMIT 5
+    `).all(thirtyDaysAgo) as { file_path: string; commits: number }[];
+
+    // Average files per commit (last 20 commits, skip merges/empty)
+    const avgFilesPerCommit = db.prepare(`
+      SELECT AVG(files_changed) as avg FROM (
+        SELECT files_changed FROM commits
+        WHERE files_changed > 0
+        ORDER BY timestamp DESC LIMIT 20
+      )
+    `).get() as { avg: number | null };
 
     // Recent decision points (last 10)
     const decisions = db.prepare(`
@@ -195,6 +218,8 @@ function buildSummary(historyDir: string, digestDays = 1): HealthSummary {
       totalBranches,
       totalTags,
       hotspots,
+      recentHotspots,
+      avgFilesPerCommit: avgFilesPerCommit?.avg ?? 0,
       decisions,
       metrics,
       alerts,
@@ -220,8 +245,16 @@ function renderMemoryFile(summary: HealthSummary): string {
   lines.push(`${summary.totalCommits} commits | ${summary.totalBranches} branches | ${summary.totalTags} tags`);
   lines.push("");
 
+  if (summary.recentHotspots.length > 0) {
+    lines.push("## Hotspots (last 30 days)");
+    for (const h of summary.recentHotspots) {
+      lines.push(`- ${h.file_path} — ${h.commits} commits`);
+    }
+    lines.push("");
+  }
+
   if (summary.hotspots.length > 0) {
-    lines.push("## Hotspots (most churn)");
+    lines.push("## Hotspots (all-time)");
     for (const h of summary.hotspots) {
       lines.push(`- ${h.file_path} — ${h.commits} commits, +${h.insertions}/-${h.deletions}`);
     }
@@ -248,12 +281,11 @@ function renderMemoryFile(summary: HealthSummary): string {
   // Health metrics
   const revertRate = summary.metrics.find(m => m.name === "revert_rate");
   const fixRate = summary.metrics.find(m => m.name === "fix_on_fix_rate");
-  const scopeCreep = summary.metrics.find(m => m.name === "scope_creep");
 
   lines.push("## Health");
   if (revertRate) lines.push(`- Revert rate: ${(revertRate.latest * 100).toFixed(1)}%`);
   if (fixRate) lines.push(`- Fix-on-fix rate: ${(fixRate.latest * 100).toFixed(1)}%`);
-  if (scopeCreep) lines.push(`- Files per commit (latest): ${scopeCreep.latest}`);
+  if (summary.avgFilesPerCommit > 0) lines.push(`- Avg files per commit: ${summary.avgFilesPerCommit.toFixed(1)}`);
   lines.push("");
 
   if (summary.alerts.length > 0) {
@@ -356,9 +388,22 @@ export function contextUpdateCommand(): Command {
 }
 
 // Exported for use by snapshot command and init
-export function runContextUpdate(cwd: string, digestDays = 1): void {
+export function runContextUpdate(cwd: string, digestDays = 1, force = false): void {
   const historyDir = join(cwd, ".git-history");
   if (!hasDb(historyDir)) return;
+
+  // Skip if last update was less than 5 minutes ago (avoid redundant writes on every commit)
+  if (!force && digestDays <= 1) {
+    const memoryDir = getMemoryDir(cwd);
+    const contextPath = join(memoryDir, "git_context.md");
+    if (existsSync(contextPath)) {
+      try {
+        const stat = statSync(contextPath);
+        const ageMs = Date.now() - stat.mtimeMs;
+        if (ageMs < 5 * 60 * 1000) return; // less than 5 min old, skip
+      } catch { /* proceed if stat fails */ }
+    }
+  }
 
   const summary = buildSummary(historyDir, digestDays);
   const content = renderMemoryFile(summary);

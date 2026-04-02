@@ -252,7 +252,7 @@ export async function snapshotCommand(opts: SnapshotOptions = {}): Promise<void>
   // Phase 8: Update Claude memory context
   process.stdout.write("Phase 8: Updating Claude memory context...\n");
   try {
-    runContextUpdate(cwd);
+    runContextUpdate(cwd, 1, true);
     process.stdout.write("  Memory context updated\n");
   } catch {
     process.stdout.write("  Warning: Could not update memory context\n");

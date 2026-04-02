@@ -130,7 +130,7 @@ export function initCommand(): Command {
       // 8. Write 30-day context to Claude memory
       write("7. Writing 30-day history to Claude memory...\n");
       try {
-        runContextUpdate(cwd, 30);
+        runContextUpdate(cwd, 30, true);
         write("   30-day digest written to Claude memory\n");
       } catch {
         write("   Warning: Could not write context. Run `git-skill context-update --days 30` manually.\n");
