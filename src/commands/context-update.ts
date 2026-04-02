@@ -17,6 +17,14 @@ function getMemoryDir(cwd: string): string {
   return join(homedir(), ".claude", "projects", encodeProjectPath(cwd), "memory");
 }
 
+interface DailyDigest {
+  newCommits: { hash: string; message: string; author: string; timestamp: string }[];
+  activeAuthors: string[];
+  filesChanged: { file_path: string; count: number }[];
+  newReverts: string[];
+  newFixes: string[];
+}
+
 interface HealthSummary {
   totalCommits: number;
   totalBranches: number;
@@ -26,9 +34,10 @@ interface HealthSummary {
   metrics: { name: string; latest: number }[];
   alerts: string[];
   snapshotTime: string;
+  digest: DailyDigest;
 }
 
-function buildSummary(historyDir: string): HealthSummary {
+function buildSummary(historyDir: string, digestDays = 1): HealthSummary {
   const db = openDb(historyDir);
 
   try {
@@ -145,9 +154,41 @@ function buildSummary(historyDir: string): HealthSummary {
     // Cap at 5 alerts, most specific (file-level) first
     alerts.splice(5);
 
+    // Daily digest — what changed since last snapshot (or last 24h)
     const snapshotMeta = db.prepare(
       "SELECT value FROM schema_meta WHERE key = 'last_snapshot'"
     ).get() as { value: string } | undefined;
+
+    const msWindow = digestDays * 86400000;
+    const sinceTime = snapshotMeta?.value && digestDays <= 1
+      ? new Date(new Date(snapshotMeta.value).getTime() - msWindow).toISOString()
+      : new Date(Date.now() - msWindow).toISOString();
+
+    const commitLimit = digestDays > 1 ? 30 : 15;
+    const newCommits = db.prepare(`
+      SELECT hash, message, author, timestamp FROM commits
+      WHERE timestamp > ? ORDER BY timestamp DESC LIMIT ?
+    `).all(sinceTime, commitLimit) as { hash: string; message: string; author: string; timestamp: string }[];
+
+    const activeAuthors = [...new Set(newCommits.map(c => c.author))];
+
+    const filesChanged = newCommits.length > 0
+      ? db.prepare(`
+          SELECT file_path, COUNT(*) as count FROM commit_files
+          WHERE commit_hash IN (${newCommits.map(() => "?").join(",")})
+          GROUP BY file_path ORDER BY count DESC LIMIT 5
+        `).all(...newCommits.map(c => c.hash)) as { file_path: string; count: number }[]
+      : [];
+
+    const newReverts = newCommits
+      .filter(c => /revert/i.test(c.message))
+      .map(c => `${c.hash.slice(0, 7)}: ${c.message}`);
+
+    const newFixes = newCommits
+      .filter(c => /\bfix\b/i.test(c.message))
+      .map(c => `${c.hash.slice(0, 7)}: ${c.message}`);
+
+    const digest: DailyDigest = { newCommits, activeAuthors, filesChanged, newReverts, newFixes };
 
     return {
       totalCommits,
@@ -158,6 +199,7 @@ function buildSummary(historyDir: string): HealthSummary {
       metrics,
       alerts,
       snapshotTime: snapshotMeta?.value ?? new Date().toISOString(),
+      digest,
     };
   } finally {
     db.close();
@@ -222,6 +264,38 @@ function renderMemoryFile(summary: HealthSummary): string {
     lines.push("");
   }
 
+  // Daily digest
+  const d = summary.digest;
+  if (d.newCommits.length > 0) {
+    lines.push("## Recent Activity");
+    lines.push(`${d.newCommits.length} commits by ${d.activeAuthors.join(", ")}`);
+    for (const c of d.newCommits.slice(0, 8)) {
+      lines.push(`- ${c.hash.slice(0, 7)} ${c.message} (${c.author}, ${c.timestamp.slice(0, 10)})`);
+    }
+    if (d.newCommits.length > 8) lines.push(`- ... and ${d.newCommits.length - 8} more`);
+    lines.push("");
+
+    if (d.filesChanged.length > 0) {
+      lines.push("Most active files:");
+      for (const f of d.filesChanged) {
+        lines.push(`- ${f.file_path} (${f.count} changes)`);
+      }
+      lines.push("");
+    }
+
+    if (d.newReverts.length > 0) {
+      lines.push("Reverts:");
+      for (const r of d.newReverts) lines.push(`- ${r}`);
+      lines.push("");
+    }
+
+    if (d.newFixes.length > 0) {
+      lines.push("Fixes:");
+      for (const f of d.newFixes) lines.push(`- ${f}`);
+      lines.push("");
+    }
+  }
+
   return lines.join("\n");
 }
 
@@ -245,7 +319,8 @@ export function contextUpdateCommand(): Command {
   return new Command("context-update")
     .description("Update Claude memory with codebase health summary")
     .option("--json", "Output the summary as JSON")
-    .action((opts: { json?: boolean }) => {
+    .option("--days <n>", "Days of activity to include in digest (default: 1)", "1")
+    .action((opts: { json?: boolean; days: string }) => {
       const cwd = process.cwd();
       const historyDir = join(cwd, ".git-history");
 
@@ -254,8 +329,8 @@ export function contextUpdateCommand(): Command {
         process.exit(1);
       }
 
-      // Build summary from SQLite
-      const summary = buildSummary(historyDir);
+      const digestDays = parseInt(opts.days, 10) || 1;
+      const summary = buildSummary(historyDir, digestDays);
 
       if (opts.json) {
         write(JSON.stringify(summary, null, 2) + "\n");
@@ -280,12 +355,12 @@ export function contextUpdateCommand(): Command {
     });
 }
 
-// Exported for use by snapshot command
-export function runContextUpdate(cwd: string): void {
+// Exported for use by snapshot command and init
+export function runContextUpdate(cwd: string, digestDays = 1): void {
   const historyDir = join(cwd, ".git-history");
   if (!hasDb(historyDir)) return;
 
-  const summary = buildSummary(historyDir);
+  const summary = buildSummary(historyDir, digestDays);
   const content = renderMemoryFile(summary);
   const memoryDir = getMemoryDir(cwd);
 

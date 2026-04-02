@@ -7,6 +7,7 @@ import { isGitRepo } from "../util/git.js";
 import { upsertSection } from "../util/claude-md.js";
 import { getSkillDoc } from "./docs.js";
 import { WALKTHROUGH, REVIEW_COMMAND } from "../templates/walkthrough.js";
+import { runContextUpdate } from "./context-update.js";
 
 function write(msg: string): void { process.stdout.write(msg); }
 
@@ -99,11 +100,20 @@ export function initCommand(): Command {
         write("   Warning: Approve failed. Run `git-skill approve` manually.\n");
       }
 
-      // 8. Cron (deferred)
+      // 8. Write 30-day context to Claude memory
+      write("7. Writing 30-day history to Claude memory...\n");
+      try {
+        runContextUpdate(cwd, 30);
+        write("   30-day digest written to Claude memory\n");
+      } catch {
+        write("   Warning: Could not write context. Run `git-skill context-update --days 30` manually.\n");
+      }
+
+      // 9. Cron (deferred)
       if (!opts.skipCron) {
-        write("7. Cron setup deferred.\n");
+        write("8. Cron setup deferred.\n");
       } else {
-        write("7. Skipping cron.\n");
+        write("8. Skipping cron.\n");
       }
 
       write("\ngit-skill initialized!\n");
