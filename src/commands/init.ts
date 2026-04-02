@@ -6,7 +6,7 @@ import { installHook } from "../util/hooks.js";
 import { isGitRepo } from "../util/git.js";
 import { upsertSection } from "../util/claude-md.js";
 import { getSkillDoc } from "./docs.js";
-import { WALKTHROUGH, REVIEW_COMMAND } from "../templates/walkthrough.js";
+import { WALKTHROUGH, REVIEW_COMMAND, PLAN_COMMAND, IMPLEMENT_COMMAND, FINALIZE_COMMAND } from "../templates/walkthrough.js";
 import { runContextUpdate } from "./context-update.js";
 
 function write(msg: string): void { process.stdout.write(msg); }
@@ -76,6 +76,33 @@ export function initCommand(): Command {
         write("\n");
       } else {
         write("   /review — already exists (not overwritten)\n");
+      }
+
+      // Install plan command if it doesn't already exist
+      const planPath = join(walkthroughDir, "plan.md");
+      if (!existsSync(planPath)) {
+        writeFileSync(planPath, PLAN_COMMAND);
+        write("   /plan — plan features with git history awareness (NEW)\n");
+      } else {
+        write("   /plan — already exists (not overwritten)\n");
+      }
+
+      // Install implement command if it doesn't already exist
+      const implementPath = join(walkthroughDir, "implement.md");
+      if (!existsSync(implementPath)) {
+        writeFileSync(implementPath, IMPLEMENT_COMMAND);
+        write("   /implement — implement features with TDD and frequent commits (NEW)\n");
+      } else {
+        write("   /implement — already exists (not overwritten)\n");
+      }
+
+      // Install finalize command if it doesn't already exist
+      const finalizePath = join(walkthroughDir, "finalize.md");
+      if (!existsSync(finalizePath)) {
+        writeFileSync(finalizePath, FINALIZE_COMMAND);
+        write("   /finalize — finalize features with verification (NEW)\n");
+      } else {
+        write("   /finalize — already exists (not overwritten)\n");
       }
 
       // 6. Run snapshot

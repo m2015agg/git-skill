@@ -192,6 +192,23 @@ git-skill why <hash>          # View enrichment for a commit
 - `--limit N` — Cap results
 - `--since <date>` / `--until <date>` — Time filter
 
+## Dev Workflow Commands
+
+`git-skill init` installs four slash commands for a gated development workflow:
+
+```
+/plan → /implement → /review → /finalize
+```
+
+| Command | What It Does | git-skill Integration |
+|---------|-------------|----------------------|
+| `/plan` | Design a feature, check what was tried before | `search`, `decisions`, `hotspots`, `coupling` |
+| `/implement` | TDD, branch, draft PR, frequent commits | — |
+| `/review` | Code review with history verification | `verify` (PASS/WARN/BLOCK), `hotspots` |
+| `/finalize` | Tests, clean commit, PR ready | `verify`, `doctor` |
+
+Each phase **stops and waits** for your approval before proceeding. See [docs/workflow.md](docs/workflow.md) for the full guide with examples.
+
 ## How It Works
 
 Three-layer SQLite cache at `.git-history/history.db`:
@@ -291,6 +308,7 @@ Claude can read the config, run the commands, and interpret the results. When in
 
 ## Detailed Documentation
 
+- [Dev Workflow Guide](docs/workflow.md) — How `/plan`, `/implement`, `/review`, `/finalize` work together
 - [Design Spec](docs/specs/2026-03-31-git-skill-design.md) — Full architecture, schema, algorithms, and test strategy
 - [GeorgeWorks: Memory Integration](docs/specs/context-injection.md) — How context-update writes to Claude's memory system, internal architecture of `findRelevantMemories`, consolidation phases, and thresholds
 - [Opus Verification Layer](docs/specs/opus-verification-layer.md) — Design and real-world case studies for the verify command

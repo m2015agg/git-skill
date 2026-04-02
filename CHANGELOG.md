@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.5.0 (2026-04-02)
+
+### Dev Workflow Commands
+- `git-skill init` now installs four slash commands: `/plan`, `/implement`, `/review`, `/finalize`
+- Gated workflow — each phase stops and waits for approval before proceeding
+- `/plan` checks git history for prior attempts before designing features
+- `/implement` follows TDD with branch, draft PR, frequent commits
+- `/review` runs `git-skill verify` to catch repeated mistakes
+- `/finalize` runs final verification, clean commit, PR ready
+- Won't overwrite existing commands — safe to customize
+- Full workflow guide at `docs/workflow.md`
+
 ## v0.4.6 (2026-04-02)
 
 ### Interactive Install Wizard
