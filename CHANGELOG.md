@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.5.6 (2026-04-02)
+
+### Config Command (replaces `install`)
+- `git-skill config` (alias: `install`) — shows current config, update or skip each section
+- Shows current embedding/enrichment provider, model, and API key status
+- Each section asks "Update? [y/N]" — returning users skip to what they want to change
+- API key section shows if set, offers to update or skip
+
+### Session Awareness
+- CLAUDE.md now instructs Claude to read memory files (especially `git_context.md`) at the start of every session
+- Claude checks hotspots, alerts, and recent decisions before responding
+
+### Model Fix
+- Default enrichment model corrected to `claude-sonnet-4-6` (was invalid `claude-sonnet-4-5-20250514`)
+- Fixed in config defaults, install wizard, add-key auto-detection, README, and all docs
+
+### Update Auto-Context
+- `git-skill update` generates 30-day context if `git_context.md` doesn't exist yet
+
 ## v0.5.2 (2026-04-02)
 
 ### Context Update Improvements
