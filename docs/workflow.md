@@ -32,39 +32,49 @@ Each phase ends with **STOP** — Claude reports what it did and waits for you t
 
 ## Phase 2: `/implement [plan]`
 
-**What it does:** Implements the plan using TDD with frequent commits.
+**What it does:** Implements the plan using TDD with frequent WIP commits.
 
 **Process:**
 1. Creates feature branch + draft PR immediately
 2. For each task: write failing test → implement → refactor
-3. Pushes commits frequently (rollback points)
+3. Commits and pushes WIP frequently (rollback/backup points)
 4. Stops when implementation is complete
 
-**Why draft PR first:** Creates a backup and makes work visible to the team from the start.
+**Why WIP commits:** Creates backup points the team can see. The `/review` phase will soft-reset the last commit to inspect changes before re-committing clean.
 
 ## Phase 3: `/review`
 
-**What it does:** Reviews the implementation before merge.
+**What it does:** Soft-resets the last WIP commit, runs verify on staged changes, then re-commits clean after approval.
+
+**The key flow:**
+```
+git reset --soft HEAD~1    → WIP commit becomes staged changes
+git-skill verify           → checks staged changes against history
+[fix issues if needed]     → re-stage fixes
+git commit -m "feat: ..."  → clean commit after approval
+```
 
 **git-skill integration:**
+- `git reset --soft HEAD~1` — unstages the last WIP commit so verify can inspect
 - `git-skill verify` — checks staged changes against history
   - **BLOCK**: Change re-introduces a reverted pattern → STOP, ask user
   - **WARN**: File has been churning or relates to a reverted change → proceed with caution
   - **PASS**: No concerns
+- `git-skill diff-summary` — summarizes what changed in the branch
 - `git-skill hotspots` — flags modified files that are already churning
 
-**Why verify matters:** This is where "was this tried before?" fires. The verify command searches enrichment history for the specific files/patterns being modified and surfaces what happened last time.
+**Why soft-reset:** `git-skill verify` only works on **staged** changes (`git diff --cached`). By soft-resetting the WIP commit, the changes become staged again for verification. After review passes, they're re-committed with a clean conventional message.
 
 ## Phase 4: `/finalize`
 
-**What it does:** Final checks, clean commit, PR ready for merge.
+**What it does:** Final checks, PR ready for merge.
 
 **git-skill integration:**
-- `git-skill verify` — final check before commit
+- `git-skill verify` — final check
 - `git-skill doctor` — health check
 - `git-skill hotspots` — show current state
 
-**Output:** Clean commit with conventional message, PR converted to ready, verification output shown.
+**Output:** PR converted to ready, verification output shown.
 
 ## Example Session
 
@@ -85,24 +95,28 @@ You: looks good, /implement docs/plans/2026-04-02-rate-limiting.md
 
 Claude: [Creates branch, draft PR]
   [TDD cycle for each task]
-  [Pushes 6 commits]
+  [Pushes 6 WIP commits as backup]
   STOP — implementation complete
 
 You: /review
 
-Claude: Running git-skill verify...
+Claude: Soft-resetting last WIP commit for verification...
+  git reset --soft HEAD~1
+
+  Running tests... 14/14 passing
+
+  Running git-skill verify on staged changes...
   [PASS] middleware/rate_limit.py — no concerning history
   [WARN] chat.py — modified 209 times, high churn file
 
-  Running tests... 14/14 passing
-  [Fixes 1 major issue found]
+  [Fixes 1 major issue, re-stages]
+  Re-committing clean: "feat: add rate limiting to chat API"
   STOP — review complete
 
 You: /finalize
 
 Claude: git-skill verify... all PASS
-  Tests passing, docs updated
-  Created commit: "feat: add rate limiting to chat API"
+  git-skill doctor... healthy
   PR converted to ready
   STOP — PR #42 ready for merge
 ```

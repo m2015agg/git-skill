@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.5.10 (2026-04-02)
+
+### Workflow Fix: Verify Works on Staged Changes
+- `/implement` commits WIP normally for backup (push frequently)
+- `/review` soft-resets last WIP commit (`git reset --soft HEAD~1`) to get staged changes
+- `git-skill verify` runs on staged changes (the only way it works)
+- After review passes, re-commits with a clean conventional message
+- This ensures verify always has staged changes to inspect
+
+### /trace Command + Historical Context Debugging Skill
+- `git-skill init` installs `/trace` slash command for quick debugging entry point
+- Installs `historical-context-debugging` skill at `.claude/skills/`
+- Three fault types: Missing Guard, Parallel Evolution, Stale Side Effect
+- Auto-triggered when code looks correct but behaves wrong
+
+### /git-history Rewrite
+- Now matches supabase-skill pattern: frontmatter, 8 guided steps, tips
+- Interactive walkthrough: doctor → hotspots → decisions → trends → timeline → experts → coupling → Q&A
+
+### Session Awareness
+- CLAUDE.md instructs Claude to read memory files at session start
+
 ## v0.5.6 (2026-04-02)
 
 ### Config Command (replaces `install`)

@@ -203,9 +203,9 @@ git-skill why <hash>          # View enrichment for a commit
 | Command | What It Does | git-skill Integration |
 |---------|-------------|----------------------|
 | `/plan` | Design a feature, check what was tried before | `search`, `decisions`, `hotspots`, `coupling` |
-| `/implement` | TDD, branch, draft PR, frequent commits | — |
-| `/review` | Code review with history verification | `verify` (PASS/WARN/BLOCK), `hotspots` |
-| `/finalize` | Tests, clean commit, PR ready | `verify`, `doctor` |
+| `/implement` | TDD, branch, draft PR, WIP commits for backup | — |
+| `/review` | Soft-reset WIP, verify staged changes, re-commit clean | `verify` (PASS/WARN/BLOCK), `diff-summary`, `hotspots` |
+| `/finalize` | Final verify, PR ready for merge | `verify`, `doctor` |
 
 Each phase **stops and waits** for your approval before proceeding. See [docs/workflow.md](docs/workflow.md) for the full guide with examples.
 
