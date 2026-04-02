@@ -1,8 +1,12 @@
 import { Command } from "commander";
 import { execSync } from "child_process";
+import { existsSync } from "fs";
 import { createRequire } from "module";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
+import { homedir } from "os";
+import { hasDb } from "../util/db.js";
+import { runContextUpdate } from "./context-update.js";
 
 function write(msg: string): void { process.stdout.write(msg); }
 
@@ -25,6 +29,10 @@ function getLatestVersion(): string {
   } catch {
     return "unknown";
   }
+}
+
+function encodeProjectPath(cwd: string): string {
+  return cwd.replace(/\//g, "-");
 }
 
 export function updateCommand(): Command {
@@ -56,6 +64,23 @@ export function updateCommand(): Command {
         write("\nError: Update failed. Try running manually:\n");
         write(`  npm install -g ${PACKAGE_NAME}@latest\n`);
         process.exit(1);
+      }
+
+      // After update: if this repo has .git-history but no context file, generate 30-day context
+      const cwd = process.cwd();
+      const historyDir = join(cwd, ".git-history");
+      if (hasDb(historyDir)) {
+        const memoryDir = join(homedir(), ".claude", "projects", encodeProjectPath(cwd), "memory");
+        const contextPath = join(memoryDir, "git_context.md");
+        if (!existsSync(contextPath)) {
+          write("\nGenerating 30-day context for Claude memory...\n");
+          try {
+            runContextUpdate(cwd, 30, true);
+            write("Context written.\n");
+          } catch {
+            write("Warning: Could not generate context.\n");
+          }
+        }
       }
     });
 }
