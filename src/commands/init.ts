@@ -6,7 +6,7 @@ import { installHook } from "../util/hooks.js";
 import { isGitRepo } from "../util/git.js";
 import { upsertSection } from "../util/claude-md.js";
 import { getSkillDoc } from "./docs.js";
-import { WALKTHROUGH } from "../templates/walkthrough.js";
+import { WALKTHROUGH, REVIEW_COMMAND } from "../templates/walkthrough.js";
 
 function write(msg: string): void { process.stdout.write(msg); }
 
@@ -55,12 +55,27 @@ export function initCommand(): Command {
       const claudeMdResult = upsertSection(join(cwd, "CLAUDE.md"), getSkillDoc());
       write(`   CLAUDE.md: ${claudeMdResult}\n`);
 
-      // 5. Write walkthrough
-      write("4. Writing walkthrough...\n");
+      // 5. Write walkthrough + review command
+      write("4. Writing slash commands...\n");
       const walkthroughDir = join(cwd, ".claude", "commands");
       mkdirSync(walkthroughDir, { recursive: true });
       writeFileSync(join(walkthroughDir, "git-history.md"), WALKTHROUGH);
-      write("   Walkthrough written to .claude/commands/git-history.md\n");
+      write("   /git-history — explore repo history\n");
+
+      // Install review command if it doesn't already exist (don't overwrite user customizations)
+      const reviewPath = join(walkthroughDir, "review.md");
+      if (!existsSync(reviewPath)) {
+        writeFileSync(reviewPath, REVIEW_COMMAND);
+        write("   /review — code review with git-skill verify (NEW)\n");
+        write("\n");
+        write("   The /review command adds git history verification to your code review.\n");
+        write("   It runs git-skill verify to check if staged changes repeat past mistakes,\n");
+        write("   flags files in churn hotspots, and blocks re-introduction of reverted code.\n");
+        write("   Customize it at .claude/commands/review.md\n");
+        write("\n");
+      } else {
+        write("   /review — already exists (not overwritten)\n");
+      }
 
       // 6. Run snapshot
       if (!opts.skipSnapshot) {
