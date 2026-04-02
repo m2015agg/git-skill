@@ -4,7 +4,8 @@
 **Spec:** `docs/specs/2026-03-31-git-skill-design.md`
 **Started:** 2026-03-31
 **Completed:** 2026-04-01
-**Published:** `@m2015agg/git-skill@0.2.3` on npm
+**Published:** `@m2015agg/git-skill@0.4.2` on npm
+**Latest:** v0.4.2 — hybrid vector search, smart alerts, verify command, GeorgeWorks, team fetch
 
 ---
 
@@ -46,9 +47,16 @@
 ## Post-Implementation Additions (beyond original spec)
 - **GeorgeWorks (`context-update`)** — Writes codebase health to Claude's memory system
 - **Post-commit memory refresh** — Hook runs `context-update` on every commit
+- **Smart churn alerts** — Thrashing, revert chain, fix-on-fix detection in memory
+- **Verify command** — "Was this tried before?" check against enriched history
+- **Hybrid vector search** — BM25 + cosine similarity with RRF fusion
+- **Enrichment embedding** — Enrichment intent/reasoning searchable via semantic search
+- **Auto-embed in snapshot** — Phase 7 embeds new commits + enrichments automatically
+- **Cron team fetch** — `git fetch --all` before nightly snapshot
 - **Anthropic API support** — Native `x-api-key` header + `anthropic-version`
 - **`.env` file loading** — Auto-loads API keys from `~/.env` and project `.env`
 - **Enriched LLM prompt** — Diff, file list, session context, 5000 max tokens
+- **Security hardening** — `execFileSync`, parameterized SQL, shared env utils
 - **`maxBuffer: 50MB`** — Supports repos with 2000+ commits
 
 ---
@@ -61,7 +69,7 @@
 | 2 | [Intelligence](2026-03-31-plan2-intelligence.md) | Complete | 12/12 | 50 |
 | 3 | [Advanced](2026-03-31-plan3-advanced.md) | Complete | 11/11 | 12 |
 
-**Total: 105 tests passing across 23 test files**
+**Total: 113 tests passing across 25 test files**
 
 ---
 

@@ -56,7 +56,7 @@ For semantic search, configure an embedding provider. Works with any OpenAI-comp
 
 ```bash
 git-skill install       # Configure embedding provider
-git-skill embed         # Generate embeddings for all commits
+git-skill embed         # Generate embeddings for all commits + enrichments
 ```
 
 Or manually edit `~/.config/git-skill/config.json`:
@@ -170,7 +170,7 @@ git-skill why <hash>          # View enrichment for a commit
 | `git-skill init` | Per-project setup (hook, snapshot, permissions) |
 | `git-skill approve` | Pre-approve read commands in Claude Code |
 | `git-skill docs` | Output CLAUDE.md snippet |
-| `git-skill cron` | Nightly snapshot automation |
+| `git-skill cron` | Nightly fetch + snapshot + embed automation |
 | `git-skill update` | Self-update |
 | `git-skill uninstall` | Clean removal |
 
@@ -188,7 +188,7 @@ Three-layer SQLite cache at `.git-history/history.db`:
 2. **Derived analytics** — file evolution, churn hotspots, coupling, decision points, author expertise, trends
 3. **LLM enrichments** — intent, reasoning, category per commit (optional, via `enrich`)
 
-Search uses BM25 (FTS5) by default. Optional vector search via any OpenAI-compatible embedding endpoint.
+Search uses hybrid BM25 + vector similarity (Reciprocal Rank Fusion) when embeddings exist. Falls back to BM25-only when no embeddings are configured. Use `--bm25` flag to force keyword-only search.
 
 ## Built-in Metrics
 
@@ -236,6 +236,26 @@ Example output:
 ```
 
 Works without an LLM configured (local-only analysis shows edit counts and revert history). With an LLM configured, provides deep reasoning about why previous attempts failed.
+
+## Automation
+
+git-skill runs automatically at two levels:
+
+**Every commit** (post-commit hook):
+- `git-skill capture` — indexes the new commit into SQLite + FTS
+- `git-skill context-update` — refreshes Claude's memory with latest alerts
+
+**Nightly at 3 AM** (cron, set up with `git-skill cron`):
+- `git fetch --all` — pulls in team members' commits
+- `git-skill snapshot` — full re-index with 8 phases:
+  1. Backfill commits
+  2. Index branches
+  3. Index tags
+  4. Rebuild FTS search index
+  5. Compute analytics (hotspots, coupling, decisions, expertise, trends)
+  6. Compute built-in metrics (revert rate, fix-on-fix, scope creep)
+  7. Auto-embed new commits + enrichments
+  8. Update Claude memory context with health summary
 
 ## Need Help?
 
