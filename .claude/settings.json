@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git-skill search:*)",
+      "Bash(git-skill timeline:*)",
+      "Bash(git-skill blame:*)",
+      "Bash(git-skill trends:*)",
+      "Bash(git-skill hotspots:*)",
+      "Bash(git-skill coupling:*)",
+      "Bash(git-skill decisions:*)",
+      "Bash(git-skill experts:*)",
+      "Bash(git-skill diff-summary:*)",
+      "Bash(git-skill why:*)",
+      "Bash(git-skill regression:*)",
+      "Bash(git-skill doctor:*)",
+      "Bash(git-skill metric record:*)",
+      "Bash(git-skill context-update:*)",
+      "Bash(git-skill verify:*)"
+    ]
+  }
+}
