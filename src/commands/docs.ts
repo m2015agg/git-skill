@@ -38,7 +38,10 @@ export function getSkillDoc(): string {
 ### Global Flags
 - \`--json\` — structured output
 - \`--limit N\` — cap results
-- \`--since <date>\` / \`--until <date>\` — time filter`;
+- \`--since <date>\` / \`--until <date>\` — time filter
+
+### Session Start
+At the start of every new session, read your memory files — especially \`git_context.md\` — to understand the current state of the codebase before responding. Check hotspots, active alerts, and recent decisions. Do not ask the user for context that is already in your memory.`;
 }
 
 export function docsCommand(): Command {
