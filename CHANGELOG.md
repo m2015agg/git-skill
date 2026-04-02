@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.5.2 (2026-04-02)
+
+### Context Update Improvements
+- Added "Hotspots (last 30 days)" section alongside all-time hotspots
+- Fixed "Files per commit: 0" bug — now uses rolling average of last 20 commits
+- 5-minute staleness cache on post-commit hook — skips if recently updated
+- `context-update --days N` flag for custom digest window
+- `git-skill update` auto-generates 30-day context if missing from Claude memory
+- Init and snapshot force context-update (bypass cache)
+
 ## v0.5.0 (2026-04-02)
 
 ### Dev Workflow Commands

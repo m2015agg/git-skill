@@ -160,7 +160,7 @@ git-skill why <hash>          # View enrichment for a commit
 | `git-skill why <hash>` | Commit intent/reasoning |
 | `git-skill regression` | Change-point detection |
 | `git-skill verify` | Check staged changes against history (was this tried before?) |
-| `git-skill context-update` | Refresh Claude memory with codebase health |
+| `git-skill context-update` | Refresh Claude memory with codebase health (`--days N`) |
 | `git-skill doctor` | Health check |
 
 ### Write (require confirmation)
@@ -178,12 +178,12 @@ git-skill why <hash>          # View enrichment for a commit
 | Command | Description |
 |---------|-------------|
 | `git-skill install` | Interactive setup wizard (embeddings, enrichment, API key) |
-| `git-skill init` | Per-project setup (hook, snapshot, /review command, 30-day context) |
+| `git-skill init` | Per-project setup (hook, snapshot, workflow commands, 30-day context) |
 | `git-skill add-key <key>` | Add or update API key (auto-detects Anthropic/OpenAI) |
 | `git-skill approve` | Pre-approve read commands in Claude Code |
 | `git-skill docs` | Output CLAUDE.md snippet |
 | `git-skill cron` | Nightly fetch + snapshot + embed automation |
-| `git-skill update` | Self-update |
+| `git-skill update` | Self-update (generates 30-day context if missing) |
 | `git-skill uninstall` | Clean removal |
 
 ### Global Flags
