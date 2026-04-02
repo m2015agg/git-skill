@@ -29,6 +29,7 @@ import { cronCommand } from "./commands/cron.js";
 import { updateCommand } from "./commands/update.js";
 import { uninstallCommand } from "./commands/uninstall.js";
 import { contextUpdateCommand } from "./commands/context-update.js";
+import { addKeyCommand } from "./commands/add-key.js";
 import { verifyCommand } from "./commands/verify.js";
 
 const program = new Command();
@@ -61,6 +62,7 @@ program.addCommand(installCommand());
 program.addCommand(cronCommand());
 program.addCommand(updateCommand());
 program.addCommand(uninstallCommand());
+program.addCommand(addKeyCommand());
 program.addCommand(contextUpdateCommand());
 program.addCommand(verifyCommand());
 
