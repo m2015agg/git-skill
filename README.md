@@ -46,7 +46,7 @@ If `git-skill` is not found after install, run `hash -r` to refresh your shell's
 
 ```bash
 # First time only — interactive wizard configures embeddings + API key
-git-skill install
+git-skill config
 
 # Then in each repo
 cd your-project
@@ -66,7 +66,7 @@ git-skill add-key sk-your-key-here       # auto-detects OpenAI
 For semantic search, configure an embedding provider. Works with any OpenAI-compatible endpoint (OpenAI, Ollama, LMStudio).
 
 ```bash
-git-skill install       # Configure embedding provider
+git-skill config       # Configure embedding provider
 git-skill embed         # Generate embeddings for all commits + enrichments
 ```
 
@@ -177,7 +177,7 @@ git-skill why <hash>          # View enrichment for a commit
 
 | Command | Description |
 |---------|-------------|
-| `git-skill install` | Interactive setup wizard (embeddings, enrichment, API key) |
+| `git-skill config` | Configure embeddings, enrichment, API keys (shows current, update or skip) |
 | `git-skill init` | Per-project setup (hook, snapshot, workflow commands, 30-day context) |
 | `git-skill add-key <key>` | Add or update API key (auto-detects Anthropic/OpenAI) |
 | `git-skill approve` | Pre-approve read commands in Claude Code |
