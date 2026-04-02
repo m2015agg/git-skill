@@ -1,15 +1,54 @@
-export const WALKTHROUGH = `# Git History Walkthrough
+export const WALKTHROUGH = `---
+description: Interactive walkthrough of git history — hotspots, decisions, expertise, health trends via git-skill CLI
+allowed-tools: Read, Bash(git-skill:*)
+---
 
-Use git-skill to explore this repository's history.
+# /git-history — Codebase History Walkthrough
 
-## Quick Start
-\`\`\`
-git-skill doctor          # Check setup health
-git-skill hotspots        # Find churning files
-git-skill trends          # View metric trends
-git-skill search "auth"   # Search history
-\`\`\`
+When the user invokes this command, guide them through their codebase history interactively.
+
+## Steps
+
+1. **Check setup health**
+   Run: \`git-skill doctor\`
+   Confirm the database is fresh and hook is installed. Note commit count and snapshot age.
+
+2. **Show what's churning**
+   Run: \`git-skill hotspots --limit 10\`
+   Explain which files have the most churn. Flag any that are suspicious (high edit count in a short period = instability).
+
+3. **Show recent decisions**
+   Run: \`git-skill decisions --limit 10\`
+   Walk through the major decision points — reverts, big refactors, architecture changes. Explain the impact of each.
+
+4. **Health trends**
+   Run: \`git-skill trends\`
+   Summarize the metric trends: is revert rate going up or down? Is scope creep improving? Are commits getting smaller or larger?
+
+5. **Explore a specific area**
+   Ask the user which file or directory they want to investigate, or pick the top hotspot.
+   Run: \`git-skill timeline <path>\`
+   Show the full evolution — every commit, who made it, what changed.
+
+6. **Who knows what**
+   Run: \`git-skill experts <path>\` (using the path from step 5)
+   Show who has the most context on that area of the codebase.
+
+7. **Check for co-change patterns**
+   Run: \`git-skill coupling <path>\`
+   Reveal files that always change together — hidden dependencies the team should know about.
+
+8. **Open Q&A**
+   Say: "Ask me anything about your codebase history — I can search commits, trace file evolution, find decision points, or check what was tried before."
+
+## Tips
+- Use \`git-skill search "<query>"\` for free-text search across all commits and file paths
+- Use \`git-skill why <hash>\` to understand the intent behind any commit (requires enrichment)
+- Use \`git-skill verify\` before committing to check if staged changes repeat past mistakes
+- Use \`git-skill diff-summary v1.0..v1.1\` for a release-level summary between two refs
+- Use \`git-skill regression\` to detect change-point shifts in metrics
 `;
+
 
 export const PLAN_COMMAND = `---
 description: "Plan a feature with git history awareness — checks what was tried before"
