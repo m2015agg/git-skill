@@ -1,5 +1,7 @@
 import { Command } from "commander";
-import { execSync, spawnSync } from "child_process";
+import { execSync, spawnSync, execFileSync } from "child_process";
+import { homedir } from "os";
+import { join } from "path";
 
 function write(msg: string): void { process.stdout.write(msg); }
 
@@ -10,6 +12,23 @@ function getCrontab(): string {
     return execSync("crontab -l", { encoding: "utf-8", stdio: ["pipe", "pipe", "ignore"] });
   } catch {
     return "";
+  }
+}
+
+function getGitSkillPath(): string {
+  try {
+    return execFileSync("which", ["git-skill"], { encoding: "utf-8" }).trim();
+  } catch {
+    // Fallback to common locations
+    const candidates = [
+      join(homedir(), ".npm-global", "bin", "git-skill"),
+      "/usr/bin/git-skill",
+      "/usr/local/bin/git-skill",
+    ];
+    for (const c of candidates) {
+      try { execFileSync("test", ["-x", c]); return c; } catch { /* next */ }
+    }
+    return "git-skill"; // bare name as last resort
   }
 }
 
@@ -25,7 +44,10 @@ function setCrontab(content: string): void {
 }
 
 function buildCronLine(cwd: string): string {
-  return `0 3 * * * cd '${cwd.replace(/'/g, "'\\''")}' && git fetch --all --quiet 2>/dev/null; git-skill snapshot ${CRON_MARKER}`;
+  const bin = getGitSkillPath();
+  const logFile = join(cwd, ".git-history", "cron.log");
+  const escapedCwd = cwd.replace(/'/g, "'\\''");
+  return `0 3 * * * cd '${escapedCwd}' && git fetch --all --quiet 2>/dev/null; ${bin} snapshot >> '${logFile}' 2>&1 ${CRON_MARKER}`;
 }
 
 export function cronCommand(): Command {
