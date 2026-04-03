@@ -157,9 +157,15 @@ export function initCommand(): Command {
         write("   Warning: Could not write context. Run `git-skill context-update --days 30` manually.\n");
       }
 
-      // 9. Cron (deferred)
+      // 9. Set up nightly cron
       if (!opts.skipCron) {
-        write("8. Cron setup deferred.\n");
+        write("8. Setting up nightly cron...\n");
+        try {
+          const entryPoint = process.argv[1];
+          execFileSync("node", [entryPoint, "cron"], { cwd, stdio: "inherit" });
+        } catch {
+          write("   Warning: Cron setup failed. Run `git-skill cron` manually.\n");
+        }
       } else {
         write("8. Skipping cron.\n");
       }
